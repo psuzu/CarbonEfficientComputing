@@ -9,6 +9,7 @@ Job Model (Layer 2):
     - requested_cpus: Number of CPUs the job requires
     - runtime_hours : Duration of the job in whole hours
     - flexibility_class: "rigid", "semi-flexible", or "flexible"
+    - carbon_score  : Cached carbon-efficiency score (float or None)
 """
 
 from __future__ import annotations
@@ -41,6 +42,7 @@ class Job:
     requested_cpus: int
     runtime_hours: int
     flexibility_class: str
+    carbon_score: float | None = None
 
     def __post_init__(self) -> None:
         """Validate field types and values on construction."""
@@ -56,6 +58,10 @@ class Job:
             raise ValueError(
                 f"flexibility_class must be one of {FLEXIBILITY_CLASSES}, "
                 f"got '{self.flexibility_class}'"
+            )
+        if self.carbon_score is not None and not isinstance(self.carbon_score, (int, float)):
+            raise TypeError(
+                f"carbon_score must be a float, int, or None, got {type(self.carbon_score).__name__}"
             )
 
     # Flexibility helpers
@@ -79,6 +85,7 @@ class Job:
             "requested_cpus": self.requested_cpus,
             "runtime_hours": self.runtime_hours,
             "flexibility_class": self.flexibility_class,
+            "carbon_score": self.carbon_score,
         }
 
     @classmethod
@@ -88,12 +95,19 @@ class Job:
         Strictly enforces types — no missing or malformed values allowed.
         """
         try:
+            raw_score = row.get("carbon_score")
+            if raw_score is None or str(raw_score).strip() == "":
+                carbon_score = None
+            else:
+                carbon_score = float(raw_score)
+
             return cls(
                 job_id=int(row["job_id"]),
                 submit_hour=int(row["submit_hour"]),
                 requested_cpus=int(row["requested_cpus"]),
                 runtime_hours=int(row["runtime_hours"]),
                 flexibility_class=str(row["flexibility_class"]).strip(),
+                carbon_score=carbon_score,
             )
         except KeyError as exc:
             raise ValueError(f"Missing required field: {exc}") from exc
@@ -103,7 +117,7 @@ class Job:
 
 # CSV I/O helpers
 
-CSV_COLUMNS = ["job_id", "submit_hour", "requested_cpus", "runtime_hours", "flexibility_class"]
+CSV_COLUMNS = ["job_id", "submit_hour", "requested_cpus", "runtime_hours", "flexibility_class", "carbon_score"]
 
 
 def write_jobs_csv(jobs: List[Job], path: str | Path = "jobs_input.csv") -> Path:
