@@ -1,6 +1,6 @@
 import random
 
-# random CPU availability values for the past 48 hours
+# random CPU availability values for the next 48 hours
 capacity_array = [random.randint(1000, 1200) for i in range(48)]
 
 def check_fit(start_hour, runtime_hours, requested_cpus):
