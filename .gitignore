@@ -10,3 +10,9 @@ __pycache__/
 
 # Generated data
 jobs_input.csv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
