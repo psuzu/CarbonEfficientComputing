@@ -23,9 +23,9 @@ from typing import List
 # Flexibility Model
 
 FLEXIBILITY_DELAY = {
-    "rigid": 0,           # must start immediately
-    "semi-flexible": 6,   # can be delayed up to 6 hours
-    "flexible": 24,       # can be delayed up to 24 hours
+    "rigid": 0,
+    "semi-flexible": 6,
+    "flexible": 24,
 }
 
 FLEXIBILITY_CLASSES = list(FLEXIBILITY_DELAY.keys())
@@ -35,7 +35,6 @@ FLEXIBILITY_CLASSES = list(FLEXIBILITY_DELAY.keys())
 
 @dataclass(frozen=True)
 class Job:
-    """Immutable data structure representing a single computational workload."""
 
     job_id: int
     submit_hour: int
@@ -45,7 +44,7 @@ class Job:
     carbon_score: float | None = None
 
     def __post_init__(self) -> None:
-        """Validate field types and values on construction."""
+
         if not isinstance(self.job_id, int):
             raise TypeError(f"job_id must be int, got {type(self.job_id).__name__}")
         if not isinstance(self.submit_hour, int) or self.submit_hour < 0:
@@ -186,14 +185,12 @@ JOB_PROFILES = [
 
 
 def _pick_profile() -> dict:
-    """Weighted-random selection of a job profile."""
     profiles = JOB_PROFILES
     weights = [p["weight"] for p in profiles]
     return random.choices(profiles, weights=weights, k=1)[0]
 
 
 def _pick_flexibility(flex_weights: dict) -> str:
-    """Weighted-random selection of a flexibility class."""
     classes = list(flex_weights.keys())
     weights = list(flex_weights.values())
     return random.choices(classes, weights=weights, k=1)[0]
@@ -204,22 +201,7 @@ def generate_jobs(
     horizon_hours: int = 48,
     seed: int | None = 42,
 ) -> List[Job]:
-    """Generate *n* realistic dummy jobs spread across a *horizon_hours* window.
 
-    Parameters
-    ----------
-    n : int
-        Number of jobs to generate (default 100).
-    horizon_hours : int
-        The scheduling horizon in hours (default 48).
-    seed : int or None
-        Random seed for reproducibility.
-
-    Returns
-    -------
-    list[Job]
-        A list of validated Job dataclass instances.
-    """
     if seed is not None:
         random.seed(seed)
 

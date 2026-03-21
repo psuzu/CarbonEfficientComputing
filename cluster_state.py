@@ -23,11 +23,10 @@ from typing import Dict
 
 @dataclass(frozen=True)
 class ClusterState:
-    """Immutable snapshot of HPC cluster resources and utilization."""
 
     # Capacity
     total_nodes: int = 20
-    total_processors: int = 640       # e.g. 20 nodes × 32 cores
+    total_processors: int = 640
     total_gpus: int = 8
 
     # Current usage
@@ -40,7 +39,6 @@ class ClusterState:
     jobs_queued: int = 0
 
     def __post_init__(self) -> None:
-        """Validate types and value constraints."""
         # Capacity checks
         for field, value in [
             ("total_nodes", self.total_nodes),
@@ -100,7 +98,7 @@ class ClusterState:
         return round(self.gpus_in_use / self.total_gpus * 100, 2)
 
     # Serialisation
-    
+
     def to_dict(self) -> Dict[str, int]:
         """Convert to a plain dictionary."""
         return {
