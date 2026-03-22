@@ -12,6 +12,8 @@ inputs/
 modeling/
   timeslots.py           Hourly capacity modeling
   emissions.py           Energy and CO2 estimation
+outputs/
+  plots/                 Generated analysis plots
 tests/
   test_generate_workload.py
   test_cluster_state.py
@@ -22,8 +24,6 @@ data/
   hourly_marginal_emissions.csv
   carbon_signal_48h.csv
 ```
-
-The root files (`generate_workload.py`, `cluster_state.py`, `timeslots.py`, `emissions.py`) are now thin compatibility wrappers. The canonical implementation lives under `inputs/` and `modeling/`.
 
 ## Test It Now
 
@@ -40,7 +40,15 @@ pytest tests/test_timeslots.py -q
 pytest tests/test_emissions.py -q
 ```
 
-## What’s Ready
+Generate the demo workload directly from the package module:
+
+```powershell
+python -m inputs.generate_workload
+```
+
+If `pytest` is launched from the repository root, `tests/conftest.py` adds the repo root to `sys.path` so package imports resolve consistently.
+
+## What's Ready
 
 - Layer 1 inputs
 - Layer 2 modeling
