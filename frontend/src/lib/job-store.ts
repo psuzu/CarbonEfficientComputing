@@ -28,9 +28,11 @@ export type StoredJob = {
   queueAheadCount: number;
 };
 
+type PersistedJob = Omit<StoredJob, "status" | "progressPercent" | "queueAheadCount">;
+
 type JobDb = {
   nextId: number;
-  jobs: Omit<StoredJob, "status" | "progressPercent">[];
+  jobs: PersistedJob[];
 };
 
 const DB_PATH = path.resolve(process.cwd(), "..", "data", "job_queue_db.json");
@@ -54,7 +56,7 @@ async function writeDb(db: JobDb): Promise<void> {
   await writeFile(DB_PATH, JSON.stringify(db, null, 2), "utf-8");
 }
 
-function deriveJob(job: JobDb["jobs"][number], now = Date.now()): StoredJob {
+function deriveJob(job: PersistedJob, now = Date.now()): StoredJob {
   const submittedAtMs = new Date(job.submittedAt).getTime();
   const startAtMs = submittedAtMs + job.delayHours * DEMO_SECONDS_PER_HOUR * 1000;
   const completeAtMs = startAtMs + job.runtimeHours * DEMO_SECONDS_PER_HOUR * 1000;
@@ -109,7 +111,7 @@ export async function listJobs(): Promise<StoredJob[]> {
 }
 
 export async function createJob(
-  job: Omit<JobDb["jobs"][number], "id" | "submittedAt" | "submitHour"> & { submitHour?: number },
+  job: Omit<PersistedJob, "id" | "submittedAt" | "submitHour"> & { submitHour?: number },
 ): Promise<StoredJob> {
   const db = await readDb();
   const storedJob = {

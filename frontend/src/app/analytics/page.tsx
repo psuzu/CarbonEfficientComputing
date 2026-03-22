@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Activity, Clock, Leaf, TrendingDown } from "lucide-react";
 import {
   Area,
@@ -19,7 +19,7 @@ import {
 import { ClientChart } from "@/components/client-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { StoredJob } from "@/lib/job-store";
-import { carbonForecast, clusterState, clusterUtilization } from "@/lib/mock-data";
+import { carbonForecast, clusterUtilization } from "@/lib/mock-data";
 
 export default function AnalyticsPage() {
   const [jobs, setJobs] = useState<StoredJob[]>([]);
@@ -77,7 +77,7 @@ export default function AnalyticsPage() {
         completedJobs.length
       ).toFixed(1)
     : "0";
-  const formatBucketLabel = (label: string) => `Hour ${label}`;
+  const formatBucketLabel = (label: ReactNode) => `Hour ${String(label ?? "")}`;
 
   const emissionsComparison = completedJobs.map((job) => ({
     job: `Job ${job.id}`,
