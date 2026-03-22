@@ -4,8 +4,9 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { clusterState } from "@/lib/mock-data";
-import { Cpu, Server, MonitorDot, Activity } from "lucide-react";
+import { Cpu, Server, MonitorDot, Activity, Upload, Clock, BarChart3 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
+import { Separator } from "@/components/ui/separator";
 
 const utilizationData = [
   { v: 30 }, { v: 45 }, { v: 52 }, { v: 48 }, { v: 60 }, { v: 55 }, { v: 62 }, { v: 58 }, { v: 65 },
@@ -65,6 +66,57 @@ export default function Home() {
           </Link>
         </div>
       </div>
+
+      {/* Mission Statement */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="pt-6 text-center space-y-2">
+          <h2 className="text-xl font-semibold">Our Mission</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Data centers account for 1-2% of global electricity use. By intelligently shifting
+            flexible workloads to times when the grid is powered by renewables, we can cut HPC
+            carbon emissions by up to 40% - without slowing down research.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* How It Works */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold text-center">How It Works</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="pt-6 text-center space-y-2">
+              <Upload className="size-8 mx-auto text-primary" />
+              <h3 className="font-semibold">1. Submit Your Job</h3>
+              <p className="text-sm text-muted-foreground">
+                Upload your code and specify resource requirements - CPUs, runtime, and how
+                flexible your deadline is.
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 text-center space-y-2">
+              <Clock className="size-8 mx-auto text-blue-500" />
+              <h3 className="font-semibold">2. Find Green Windows</h3>
+              <p className="text-sm text-muted-foreground">
+                The scheduler analyzes carbon intensity forecasts and finds the cleanest
+                time slot within your flexibility window.
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-6 text-center space-y-2">
+              <BarChart3 className="size-8 mx-auto text-purple-500" />
+              <h3 className="font-semibold">3. Track Your Impact</h3>
+              <p className="text-sm text-muted-foreground">
+                View detailed reports showing baseline vs optimized emissions and how much
+                CO₂ your scheduling choices saved.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <Separator />
 
       {/* Cluster Status */}
       <div>

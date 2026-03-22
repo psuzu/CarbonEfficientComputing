@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { carbonForecast } from "@/lib/mock-data";
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
-import { Leaf } from "lucide-react";
+import { Leaf, Upload } from "lucide-react";
 
 export default function SubmitJobPage() {
   const router = useRouter();
@@ -15,6 +15,12 @@ export default function SubmitJobPage() {
     runtime: 4,
     flexibility: "semi-flexible",
   });
+  const [fileName, setFileName] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) setFileName(file.name);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,10 +70,27 @@ export default function SubmitJobPage() {
                   onChange={(e) => setForm({ ...form, flexibility: e.target.value })}
                   className="w-full px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <option value="rigid">Rigid — must run now</option>
-                  <option value="semi-flexible">Semi-flexible — up to 6hr delay</option>
-                  <option value="flexible">Flexible — up to 24hr delay</option>
+                  <option value="rigid">Rigid - must run now</option>
+                  <option value="semi-flexible">Semi-flexible - up to 6hr delay</option>
+                  <option value="flexible">Flexible - up to 24hr delay</option>
                 </select>
+              </div>
+
+              {/* Zip file upload */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Code (zip file)</label>
+                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-md border-input hover:border-primary/50 cursor-pointer transition-colors bg-background">
+                  <Upload className="size-5 text-muted-foreground mb-1" />
+                  <span className="text-sm text-muted-foreground">
+                    {fileName ? fileName : "Click to upload .zip"}
+                  </span>
+                  <input
+                    type="file"
+                    accept=".zip"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
               </div>
 
               <Button type="submit" className="w-full" size="lg">
