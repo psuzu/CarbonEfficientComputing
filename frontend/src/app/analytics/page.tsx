@@ -35,10 +35,13 @@ type EmissionsPoint = {
   optimized: number;
 };
 
-function formatBucketLabel(value: string) {
+function formatBucketLabel(value: any) {
+  if (!value) return "";
+
   const date = new Date(value);
+  
   if (Number.isNaN(date.getTime())) {
-    return value;
+    return String(value);
   }
 
   return date.toLocaleString([], {
