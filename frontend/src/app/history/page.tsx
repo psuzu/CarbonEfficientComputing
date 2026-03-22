@@ -8,8 +8,8 @@ import type { StoredJob } from "@/lib/job-store";
 export default function HistoryPage() {
   const [jobs, setJobs] = useState<StoredJob[]>([]);
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<keyof StoredJob>("id");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [sortKey, setSortKey] = useState<keyof StoredJob>("submittedAt");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const pageSize = 10;
@@ -49,24 +49,30 @@ export default function HistoryPage() {
     );
   }, [jobs, search]);
 
-const sorted = useMemo(() => {
+  const sorted = useMemo(() => {
     const safeArray = Array.isArray(filtered) ? filtered : [];
-    
+
     return [...safeArray].sort((left, right) => {
       const leftValue = left[sortKey];
       const rightValue = right[sortKey];
 
-      // 1. If they are exactly the same, no need to sort
-      if (leftValue === rightValue) return 0;
+      if (sortKey === "submittedAt") {
+        const leftTime = new Date(String(leftValue)).getTime();
+        const rightTime = new Date(String(rightValue)).getTime();
 
-      // 2. Safely push any null/undefined values to the bottom
+        if (leftTime < rightTime) return sortDir === "asc" ? -1 : 1;
+        if (leftTime > rightTime) return sortDir === "asc" ? 1 : -1;
+        return left.id - right.id;
+      }
+
+      if (leftValue === rightValue) return left.id - right.id;
+
       if (leftValue === null || leftValue === undefined) return 1;
       if (rightValue === null || rightValue === undefined) return -1;
 
-      // 3. Normal sorting for actual values
       if (leftValue < rightValue) return sortDir === "asc" ? -1 : 1;
       if (leftValue > rightValue) return sortDir === "asc" ? 1 : -1;
-      return 0;
+      return left.id - right.id;
     });
   }, [filtered, sortKey, sortDir]);
 

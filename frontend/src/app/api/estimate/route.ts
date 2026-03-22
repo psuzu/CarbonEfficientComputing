@@ -1,16 +1,11 @@
-import { randomUUID } from "node:crypto";
-import { writeFile, unlink } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { NextResponse } from "next/server";
 import { createJob } from "@/lib/job-store";
-import { runPythonScript } from "@/lib/python";
+import { estimateSubmission } from "@/lib/carbon-estimation";
+import { analyzeJobArchive } from "@/lib/job-analysis";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  let tempArchivePath: string | null = null;
-
   try {
     const formData = await request.formData();
     const archive = formData.get("archive");
@@ -51,21 +46,8 @@ export async function POST(request: Request) {
       );
     }
 
-    tempArchivePath = path.join(tmpdir(), `${randomUUID()}-${archive.name}`);
-    await writeFile(tempArchivePath, Buffer.from(await archive.arrayBuffer()));
-
-    const repoRoot = path.resolve(process.cwd(), "..");
-    const analysis = JSON.parse(
-      await runPythonScript(
-        repoRoot,
-        "job_analyzer.py",
-        JSON.stringify({
-          archive_path: tempArchivePath,
-          requested_cpus: cpus,
-          runtime_hours: runtimeHours,
-        }),
-      ),
-    ) as {
+    const archiveBuffer = Buffer.from(await archive.arrayBuffer());
+    const analysis = analyzeJobArchive(archiveBuffer, archive.name, cpus, runtimeHours) as {
       recommended_cpus: number;
       estimated_runtime_hours: number;
       workload_class: string;
@@ -77,19 +59,13 @@ export async function POST(request: Request) {
     const effectiveCpus = Math.max(cpus, Number(analysis.recommended_cpus));
     const effectiveRuntimeHours = Math.max(runtimeHours, Number(analysis.estimated_runtime_hours));
 
-    const estimate = JSON.parse(
-      await runPythonScript(
-        repoRoot,
-        "estimator.py",
-        JSON.stringify({
-          cpus: effectiveCpus,
-          runtime_hours: effectiveRuntimeHours,
-          submit_hour: 0,
-          flexibility_class: flexibilityClass,
-          latest_start_hour: latestStartHour,
-        }),
-      ),
-    ) as Record<string, string | number>;
+    const estimate = estimateSubmission({
+      cpus: effectiveCpus,
+      runtime_hours: effectiveRuntimeHours,
+      submit_hour: 0,
+      flexibility_class: flexibilityClass as "rigid" | "semi-flexible" | "flexible",
+      latest_start_hour: latestStartHour,
+    }) as Record<string, string | number>;
 
     const job = await createJob({
       jobName,
@@ -126,9 +102,5 @@ export async function POST(request: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to estimate uploaded job";
     return NextResponse.json({ error: message }, { status: 500 });
-  } finally {
-    if (tempArchivePath !== null) {
-      await unlink(tempArchivePath).catch(() => undefined);
-    }
   }
 }

@@ -1,21 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
-import { runPythonModule } from "@/lib/python";
-
-const REPO_ROOT = path.resolve(process.cwd(), "..");
-
-function runPython(args: string[]): Promise<string> {
-  return runPythonModule(REPO_ROOT, "decision.scheduler_api", args, {
-    PYTHONPATH: REPO_ROOT,
-  }).then((stdout) => stdout.trim());
-}
+import { buildSchedulePreview, buildSingleScheduleEstimate } from "@/lib/carbon-estimation";
 
 // GET /api/schedule  -> full batch simulation
 export async function GET() {
   try {
-    const raw = await runPython([]);
-    const data = JSON.parse(raw);
-    return NextResponse.json(data);
+    return NextResponse.json(buildSchedulePreview());
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });
@@ -38,12 +27,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const raw = await runPython([String(cpus), String(runtime), flexibility]);
-    const data = JSON.parse(raw);
-
-    if (data.error) {
-      return NextResponse.json(data, { status: 422 });
+    if (!["rigid", "semi-flexible", "flexible"].includes(flexibility)) {
+      return NextResponse.json({ error: "Unknown flexibility class" }, { status: 400 });
     }
+
+    const data = buildSingleScheduleEstimate(
+      cpus,
+      runtime,
+      flexibility as "rigid" | "semi-flexible" | "flexible",
+    );
 
     return NextResponse.json(data);
   } catch (err) {
