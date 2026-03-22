@@ -1,38 +1,47 @@
 import { NextResponse } from "next/server";
-import db from "@/lib/db";
+import { supabaseServer, formatSupabaseError } from "@/lib/supabase-server";
 
 export async function GET() {
-  const jobs = db.prepare("SELECT * FROM jobs ORDER BY id ASC").all() as {
-    id: number; submitHour: number; requestedCpus: number; runtimeHours: number;
-    flexibilityClass: string; status: string; carbonBaseline: number;
-    carbonOptimized: number; scheduledStart: number; delayHours: number;
-  }[];
+  try {
+    const { data: jobs, error } = await supabaseServer
+      .from("jobs")
+      .select("*")
+      .order("created_at", { ascending: true });
 
-  if (!jobs.length) return NextResponse.json({ summary: null, jobs: [], carbonTimeline: [] });
+    if (error) throw error;
 
-  const totalBaseline = jobs.reduce((s, j) => s + j.carbonBaseline, 0);
-  const totalOptimized = jobs.reduce((s, j) => s + j.carbonOptimized, 0);
-  const totalSaved = totalBaseline - totalOptimized;
-  const avgPct = totalBaseline > 0 ? (totalSaved / totalBaseline) * 100 : 0;
-  const delayed = jobs.filter((j) => j.delayHours > 0);
-  const avgDelay = delayed.length
-    ? delayed.reduce((s, j) => s + j.delayHours, 0) / delayed.length
-    : 0;
+    if (!jobs || jobs.length === 0) {
+      return NextResponse.json({ summary: null, jobs: [], carbonTimeline: [] });
+    }
 
-  return NextResponse.json({
-    summary: {
-      totalJobs: jobs.length,
-      totalBaselineG: Math.round(totalBaseline),
-      totalOptimizedG: Math.round(totalOptimized),
-      totalSavedG: Math.round(totalSaved),
-      avgPercentSavings: Math.round(avgPct * 10) / 10,
-      jobsDelayed: delayed.length,
-      avgDelayHours: Math.round(avgDelay * 10) / 10,
-    },
-    jobs: jobs.map((j) => ({
-      id: j.id,
-      baseline: j.carbonBaseline,
-      optimized: j.carbonOptimized,
-    })),
-  });
+    const totalBaseline = jobs.reduce((s, j) => s + Number(j.carbon_baseline ?? 0), 0);
+    const totalOptimized = jobs.reduce((s, j) => s + Number(j.carbon_optimized ?? 0), 0);
+    const totalSaved = totalBaseline - totalOptimized;
+    const avgPct = totalBaseline > 0 ? (totalSaved / totalBaseline) * 100 : 0;
+    const delayed = jobs.filter((j) => Number(j.scheduled_start ?? 0) > Number(j.submit_hour ?? 0));
+    const avgDelay = delayed.length
+      ? delayed.reduce((s, j) => s + Math.max(Number(j.scheduled_start ?? 0) - Number(j.submit_hour ?? 0), 0), 0) / delayed.length
+      : 0;
+
+    return NextResponse.json({
+      summary: {
+        totalJobs: jobs.length,
+        totalBaselineG: Math.round(totalBaseline),
+        totalOptimizedG: Math.round(totalOptimized),
+        totalSavedG: Math.round(totalSaved),
+        avgPercentSavings: Math.round(avgPct * 10) / 10,
+        jobsDelayed: delayed.length,
+        avgDelayHours: Math.round(avgDelay * 10) / 10,
+      },
+      jobs: jobs.map((j) => ({
+        id: j.job_id ?? j.id,
+        baseline: Number(j.carbon_baseline ?? 0),
+        optimized: Number(j.carbon_optimized ?? 0),
+      })),
+    });
+  } catch (error: unknown) {
+    const message = formatSupabaseError(error);
+    console.error("Analytics GET Error:", message);
+    return NextResponse.json({ error: `Failed to fetch analytics: ${message}` }, { status: 500 });
+  }
 }
