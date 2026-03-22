@@ -34,16 +34,26 @@ export default function HistoryPage() {
     );
   }, [search, jobs]);
 
-  const sorted = useMemo(() => {
-    return [...(filtered || [])].sort((left, right) => {
+const sorted = useMemo(() => {
+    const safeArray = Array.isArray(filtered) ? filtered : [];
+    
+    return [...safeArray].sort((left, right) => {
       const leftValue = left[sortKey];
       const rightValue = right[sortKey];
 
+      // 1. If they are exactly the same, no need to sort
+      if (leftValue === rightValue) return 0;
+
+      // 2. Safely push any null/undefined values to the bottom
+      if (leftValue === null || leftValue === undefined) return 1;
+      if (rightValue === null || rightValue === undefined) return -1;
+
+      // 3. Normal sorting for actual values
       if (leftValue < rightValue) return sortDir === "asc" ? -1 : 1;
       if (leftValue > rightValue) return sortDir === "asc" ? 1 : -1;
       return 0;
     });
-  }, [filtered, sortDir, sortKey]);
+  }, [filtered, sortKey, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const paginated = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
