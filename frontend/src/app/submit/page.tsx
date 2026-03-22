@@ -23,6 +23,8 @@ type AnalysisResult = {
   analysis_source: string;
   recommended_cpus: number;
   estimated_runtime_hours: number;
+  workload_class?: string | null;
+  archive_name?: string | null;
   submit_hour?: number | null;
   flexibility_class?: string | null;
   error?: string;
@@ -117,6 +119,9 @@ export default function SubmitJobPage() {
       runtime_hours: form.runtime,
       flexibility_class: form.flexibility,
       submit_hour: now.getHours(),
+      workload_class: "generic",
+      source_archive: archive?.name ?? null,
+      file_bytes: archive?.size ?? 0,
     };
 
     if (archive) {
@@ -137,6 +142,9 @@ export default function SubmitJobPage() {
             ...payload,
             requested_cpus: Number(analysis.recommended_cpus ?? form.cpus),
             runtime_hours: Number(analysis.estimated_runtime_hours ?? form.runtime),
+            workload_class: analysis.workload_class ?? payload.workload_class,
+            source_archive: analysis.archive_name ?? archive.name,
+            file_bytes: archive.size,
             submit_hour:
               analysis.analysis_source === "manifest" && Number.isInteger(analysis.submit_hour)
                 ? Number(analysis.submit_hour)

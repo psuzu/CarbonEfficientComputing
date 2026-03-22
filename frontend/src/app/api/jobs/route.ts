@@ -9,6 +9,9 @@ type JobRow = {
   requested_cpus: number | null;
   runtime_hours: number | null;
   flexibility_class: string | null;
+  workload_class: string | null;
+  source_archive: string | null;
+  file_bytes: number | null;
   submitter_name: string | null;
   status: string | null;
   scheduled_start: number | null;
@@ -42,6 +45,14 @@ const FLEXIBILITY_DELAY: Record<string, number> = {
   rigid: 0,
   'semi-flexible': 6,
   flexible: 24,
+};
+
+const WORKLOAD_POWER_FACTOR: Record<string, number> = {
+  interactive: 0.85,
+  'dev-test': 1,
+  batch: 1.15,
+  training: 1.35,
+  generic: 1,
 };
 
 function toTitleStatus(value: string | null | undefined) {
@@ -81,6 +92,8 @@ async function estimateJobMetrics(row: JobRow): Promise<EstimatedMetrics | null>
   const runtimeHours = Number(row.runtime_hours ?? 0)
   const submitHour = Number(row.submit_hour ?? 0)
   const flexibilityClass = String(row.flexibility_class ?? 'semi-flexible')
+  const workloadClass = String(row.workload_class ?? 'generic')
+  const fileBytes = Number(row.file_bytes ?? 0)
 
   if (requestedCpus < 1 || runtimeHours < 1 || submitHour < 0) {
     return null
@@ -117,7 +130,12 @@ async function estimateJobMetrics(row: JobRow): Promise<EstimatedMetrics | null>
     }
   }
 
-  const energyKwh = requestedCpus * 0.15 * runtimeHours
+  const normalizedWorkload = workloadClass.trim().toLowerCase()
+  const workloadFactor =
+    WORKLOAD_POWER_FACTOR[normalizedWorkload] ?? WORKLOAD_POWER_FACTOR.generic
+  const powerWatts = (60 + requestedCpus * 12 * workloadFactor) * 1.2
+  const fileOverheadKwh = Math.max(fileBytes, 0) / 1_000_000 * 0.001
+  const energyKwh = powerWatts * runtimeHours / 1000 + fileOverheadKwh
 
   return {
     baselineEmissions: Math.round(energyKwh * baselineIntensity * 10) / 10,
@@ -199,6 +217,9 @@ export async function POST(request: Request) {
       requested_cpus: Number(body.requested_cpus ?? body.requestedCpus ?? 0),
       runtime_hours: Number(body.runtime_hours ?? body.runtimeHours ?? 0),
       flexibility_class: String(body.flexibility_class ?? body.flexibilityClass ?? 'semi-flexible'),
+      workload_class: String(body.workload_class ?? body.workloadClass ?? 'generic'),
+      source_archive: body.source_archive ?? body.sourceArchive ?? null,
+      file_bytes: Number(body.file_bytes ?? body.fileBytes ?? 0),
       submitter_name: String(body.submitter_name ?? body.submitterName ?? 'Anonymous Researcher'),
       status: toDbStatus(body.status),
       scheduled_start: body.scheduled_start ?? body.scheduledStart ?? null,
@@ -215,6 +236,9 @@ export async function POST(request: Request) {
       requested_cpus: draftRow.requested_cpus,
       runtime_hours: draftRow.runtime_hours,
       flexibility_class: draftRow.flexibility_class,
+      workload_class: draftRow.workload_class,
+      source_archive: draftRow.source_archive,
+      file_bytes: draftRow.file_bytes,
       submitter_name: draftRow.submitter_name,
       status: draftRow.status,
       scheduled_start:
