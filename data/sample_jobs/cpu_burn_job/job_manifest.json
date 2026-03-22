@@ -1,0 +1,10 @@
+{
+  "job_id": 2001,
+  "submit_hour": 0,
+  "requested_cpus": 1,
+  "requested_gpus": 0,
+  "runtime_hours": 1,
+  "flexibility_class": "rigid",
+  "workload_class": "interactive",
+  "source_archive": "data/sample_jobs/cpu_burn_job.zip"
+}

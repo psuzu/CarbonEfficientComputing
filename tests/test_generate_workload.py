@@ -30,6 +30,7 @@ class TestJobConstruction:
         assert job.job_id == 1
         assert job.requested_gpus == 1
         assert job.workload_class == "training"
+        assert job.source_archive is None
         assert job.carbon_score is None
         assert job.requires_accelerator is True
 
@@ -63,6 +64,8 @@ class TestJobValidation:
             Job(1, 0, 1, 1, "ultra-flex")
         with pytest.raises(ValueError, match="workload_class"):
             Job(1, 0, 1, 1, "rigid", workload_class="  ")
+        with pytest.raises(ValueError, match="source_archive"):
+            Job(1, 0, 1, 1, "rigid", source_archive="submission.tar")
 
 
 class TestFlexibilityHelpers:
@@ -82,7 +85,16 @@ class TestSerialisation:
         assert set(job.to_dict().keys()) == set(CSV_COLUMNS)
 
     def test_round_trip_via_dict(self):
-        original = Job(42, 13, 64, 8, "flexible", requested_gpus=2, workload_class="training")
+        original = Job(
+            42,
+            13,
+            64,
+            8,
+            "flexible",
+            requested_gpus=2,
+            workload_class="training",
+            source_archive="data/sample_jobs/demo_research_job.zip",
+        )
         rebuilt = Job.from_dict(original.to_dict())
         assert rebuilt == original
 
@@ -97,6 +109,7 @@ class TestSerialisation:
         job = Job.from_dict(row)
         assert job.requested_gpus == 0
         assert job.workload_class == "generic"
+        assert job.source_archive is None
 
     def test_from_dict_missing_field(self):
         with pytest.raises(ValueError, match="Missing required field"):
@@ -108,7 +121,16 @@ class TestCsvRoundTrip:
         csv_file = tmp_path / "jobs" / "test_jobs.csv"
         original_jobs = [
             Job(1, 0, 2, 1, "rigid"),
-            Job(2, 12, 64, 10, "flexible", requested_gpus=2, workload_class="training"),
+            Job(
+                2,
+                12,
+                64,
+                10,
+                "flexible",
+                requested_gpus=2,
+                workload_class="training",
+                source_archive="data/sample_jobs/demo_research_job.zip",
+            ),
             Job(3, 5, 8, 3, "semi-flexible", workload_class="dev-test"),
         ]
 
