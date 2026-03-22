@@ -28,6 +28,7 @@ function ReportContent() {
   const submitMinute = Number(params.get("submit_minute") || 0);
   const fileBytes = Number(params.get("file_bytes") || 0);
 
+  const submitterName = params.get("submitter_name") || "Anonymous Researcher";
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
@@ -59,6 +60,7 @@ function ReportContent() {
         requestedCpus: cpus,
         runtimeHours: runtime,
         flexibilityClass: flex,
+        submitterName,
         status: "Completed",
         carbonBaseline: Math.round(result.baseline_co2_g),
         carbonOptimized: Math.round(result.optimized_co2_g),

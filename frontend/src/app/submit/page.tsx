@@ -154,24 +154,17 @@ export default function SubmitJobPage() {
       }
     }
 
-    try {
-      const response = await fetch('/api/jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        router.push('/history');
-        return;
-      }
-
-      const result = await response.json().catch(() => null);
-      setSubmissionError(result?.error || "Failed to submit job to Supabase.");
-    } catch (error) {
-      console.error("Failed to submit job to Supabase.", error);
-      setSubmissionError("Failed to submit job to Supabase.");
-    }
+    // Navigate to report page — it will call /api/score and save to DB itself
+    const params = new URLSearchParams({
+      cpus: String(payload.requested_cpus),
+      runtime: String(payload.runtime_hours),
+      flex: payload.flexibility_class,
+      submit_hour: String(payload.submit_hour),
+      submit_minute: String(now.getMinutes()),
+      file_bytes: String(archive?.size ?? 0),
+      submitter_name: payload.submitter_name,
+    });
+    router.push(`/report?${params.toString()}`);
   };
 
   return (
