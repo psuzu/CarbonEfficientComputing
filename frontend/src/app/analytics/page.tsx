@@ -9,6 +9,8 @@ import {
   BarChart,
   CartesianGrid,
   Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -21,15 +23,36 @@ import { carbonForecast, clusterState, clusterUtilization } from "@/lib/mock-dat
 
 export default function AnalyticsPage() {
   const [jobs, setJobs] = useState<StoredJob[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadJobs = async () => {
-      const response = await fetch("/api/jobs", { cache: "no-store" });
-      const payload = (await response.json()) as { jobs?: StoredJob[] };
-      if (!cancelled && Array.isArray(payload.jobs)) {
-        setJobs(payload.jobs);
+      try {
+        const response = await fetch("/api/jobs", { cache: "no-store" });
+        const payload = (await response.json()) as StoredJob[] | { jobs?: StoredJob[]; error?: string };
+        const nextJobs = Array.isArray(payload) ? payload : payload.jobs;
+
+        if (!response.ok) {
+          const message = Array.isArray(payload) ? null : payload.error;
+          throw new Error(message || "Failed to load analytics jobs.");
+        }
+
+        if (!cancelled) {
+          setJobs(Array.isArray(nextJobs) ? nextJobs : []);
+          setError(null);
+        }
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError instanceof Error ? loadError.message : "Failed to load analytics jobs.");
+          setJobs([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
@@ -46,7 +69,6 @@ export default function AnalyticsPage() {
 
   const completedJobs = useMemo(() => jobs.filter((job) => job.status === "Completed"), [jobs]);
   const totalBaseline = completedJobs.reduce((sum, job) => sum + job.carbonBaseline, 0);
-  const totalOptimized = completedJobs.reduce((sum, job) => sum + job.carbonOptimized, 0);
   const totalSaved = completedJobs.reduce((sum, job) => sum + job.carbonSaved, 0);
   const avgReduction = totalBaseline === 0 ? 0 : Math.round((totalSaved / totalBaseline) * 100);
   const avgDelay = completedJobs.length
@@ -55,13 +77,30 @@ export default function AnalyticsPage() {
         completedJobs.length
       ).toFixed(1)
     : "0";
-  const cpuUtil = Math.round((clusterState.processorsInUse / clusterState.totalProcessors) * 100);
+  const formatBucketLabel = (label: string) => `Hour ${label}`;
 
   const emissionsComparison = completedJobs.map((job) => ({
     job: `Job ${job.id}`,
     baseline: job.carbonBaseline,
     optimized: job.carbonOptimized,
   }));
+
+  const analytics = {
+    totalSaved,
+    avgReduction,
+    avgDelay,
+    activeJobs: jobs.filter((job) => job.status !== "Completed").length,
+    submissions: carbonForecast.map((point) => {
+      const bucketJobs = jobs.filter((job) => job.submitHour === point.hour);
+      return {
+        label: String(point.hour),
+        jobs: bucketJobs.length,
+        saved: bucketJobs.reduce((sum, job) => sum + job.carbonSaved, 0),
+      };
+    }),
+    statusBreakdown: clusterUtilization,
+    emissionsComparison,
+  };
 
   const metrics = [
     {
@@ -180,12 +219,12 @@ export default function AnalyticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Jobs By Status</CardTitle>
+            <CardTitle className="text-lg">Cluster Utilization</CardTitle>
           </CardHeader>
           <CardContent>
             <ClientChart className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={analytics.statusBreakdown}>
+                <LineChart data={analytics.statusBreakdown}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                   <XAxis dataKey="hour" fontSize={12} tickFormatter={(hour) => `${hour}h`} />
                   <YAxis fontSize={12} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />

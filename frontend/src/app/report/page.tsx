@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Clock, Leaf, Sparkles, Zap } from "lucide-react";
@@ -8,16 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-
-type ScoreResult = {
-  scheduled_start: number;
-  earliest_start: number;
-  optimized_intensity: number;
-  baseline_intensity: number;
-  baseline_co2_g: number;
-  optimized_co2_g: number;
-  delay_hours: number;
-};
 
 function ReportContent() {
   const params = useSearchParams();
@@ -42,6 +32,21 @@ function ReportContent() {
   const delay = Number(params.get("delay") || 0);
   const scheduledStart = Number(params.get("scheduledStart") || 0);
   const latestStartHour = Number(params.get("latestStartHour") || scheduledStart);
+  const aiExplanation = [
+    `${jobName} is categorized as a ${workloadClass} workload with ${intensityLabel.toLowerCase()} carbon guidance.`,
+    saved > 0
+      ? `By shifting execution to forecast hour ${scheduledStart}, this plan avoids about ${saved.toLocaleString()} gCO2 compared with running immediately.`
+      : "This schedule does not currently show measurable carbon savings versus an immediate start.",
+    delay > 0
+      ? `The tradeoff is a ${delay}-hour delay, while still staying within the latest allowed start hour of ${latestStartHour}.`
+      : "No schedule delay was needed to achieve this recommendation.",
+    submittedCpus !== cpus || submittedRuntime !== runtime
+      ? `The estimator adjusted the job profile from ${submittedCpus} CPUs / ${submittedRuntime}h to ${cpus} CPUs / ${runtime}h based on the uploaded workload.`
+      : null,
+    warnings.length > 0 ? `Notes: ${warnings.join("; ")}.` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">

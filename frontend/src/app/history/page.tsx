@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { StoredJob } from "@/lib/job-store";
 
@@ -18,9 +19,10 @@ export default function HistoryPage() {
 
     const loadJobs = async () => {
       const response = await fetch("/api/jobs", { cache: "no-store" });
-      const payload = (await response.json()) as { jobs?: StoredJob[] };
-      if (!cancelled && Array.isArray(payload.jobs)) {
-        setJobs(payload.jobs);
+      const payload = (await response.json()) as StoredJob[] | { jobs?: StoredJob[] };
+      const nextJobs = Array.isArray(payload) ? payload : payload.jobs;
+      if (!cancelled && Array.isArray(nextJobs)) {
+        setJobs(nextJobs);
       }
     };
 
@@ -60,12 +62,60 @@ export default function HistoryPage() {
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const paginated = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const allPageSelected = paginated.length > 0 && paginated.every((job) => selected.has(job.id));
 
   const handleSort = (key: keyof StoredJob) => {
     if (sortKey === key) {
       setSortDir(sortDir === "asc" ? "desc" : "asc");
     } else {
-      setSelected((prev) => { const s = new Set(prev); paginated.forEach((j) => s.add(j.id)); return s; });
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
+
+  const toggleSelect = (jobId: number) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(jobId)) {
+        next.delete(jobId);
+      } else {
+        next.add(jobId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allPageSelected) {
+        paginated.forEach((job) => next.delete(job.id));
+      } else {
+        paginated.forEach((job) => next.add(job.id));
+      }
+      return next;
+    });
+  };
+
+  const deleteSelected = async () => {
+    const ids = Array.from(selected);
+
+    try {
+      const response = await fetch("/api/jobs", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      setJobs((prev) => prev.filter((job) => !selected.has(job.id)));
+      setSelected(new Set());
+      setCurrentPage((prev) => Math.min(prev, Math.max(1, Math.ceil((sorted.length - ids.length) / pageSize))));
+    } catch (error) {
+      console.error("Failed to delete selected jobs.", error);
     }
   };
 
@@ -92,7 +142,7 @@ export default function HistoryPage() {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10 space-y-4">
+    <div className="max-w-[95rem] mx-auto px-6 py-10 space-y-4">
       <h1 className="text-3xl font-bold">Job History</h1>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -120,7 +170,7 @@ export default function HistoryPage() {
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="min-w-full divide-y divide-border">
+        <table className="min-w-[88rem] divide-y divide-border">
           <thead className="bg-muted">
             <tr>
               <th className="px-4 py-3">
