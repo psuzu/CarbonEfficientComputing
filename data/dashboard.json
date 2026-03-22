@@ -1,0 +1,1287 @@
+{
+  "summary": {
+    "totalJobs": 77,
+    "totalEnergyKwh": 1027.8576,
+    "totalBaselineKgCo2": 308.650956,
+    "totalOptimizedKgCo2": 285.537816,
+    "totalSavingsKgCo2": 23.11314,
+    "avgPercentSavings": 15.34,
+    "jobsDelayed": 38,
+    "avgDelayHours": 7.53
+  },
+  "carbonTimeline": [
+    {
+      "hour": 0,
+      "intensity": 150.0
+    },
+    {
+      "hour": 1,
+      "intensity": 155.11
+    },
+    {
+      "hour": 2,
+      "intensity": 170.1
+    },
+    {
+      "hour": 3,
+      "intensity": 193.93
+    },
+    {
+      "hour": 4,
+      "intensity": 225.0
+    },
+    {
+      "hour": 5,
+      "intensity": 261.18
+    },
+    {
+      "hour": 6,
+      "intensity": 300.0
+    },
+    {
+      "hour": 7,
+      "intensity": 338.82
+    },
+    {
+      "hour": 8,
+      "intensity": 375.0
+    },
+    {
+      "hour": 9,
+      "intensity": 406.07
+    },
+    {
+      "hour": 10,
+      "intensity": 429.9
+    },
+    {
+      "hour": 11,
+      "intensity": 444.89
+    },
+    {
+      "hour": 12,
+      "intensity": 450.0
+    },
+    {
+      "hour": 13,
+      "intensity": 444.89
+    },
+    {
+      "hour": 14,
+      "intensity": 429.9
+    },
+    {
+      "hour": 15,
+      "intensity": 406.07
+    },
+    {
+      "hour": 16,
+      "intensity": 375.0
+    },
+    {
+      "hour": 17,
+      "intensity": 338.82
+    },
+    {
+      "hour": 18,
+      "intensity": 300.0
+    },
+    {
+      "hour": 19,
+      "intensity": 261.18
+    },
+    {
+      "hour": 20,
+      "intensity": 225.0
+    },
+    {
+      "hour": 21,
+      "intensity": 193.93
+    },
+    {
+      "hour": 22,
+      "intensity": 170.1
+    },
+    {
+      "hour": 23,
+      "intensity": 155.11
+    },
+    {
+      "hour": 24,
+      "intensity": 150.0
+    },
+    {
+      "hour": 25,
+      "intensity": 155.11
+    },
+    {
+      "hour": 26,
+      "intensity": 170.1
+    },
+    {
+      "hour": 27,
+      "intensity": 193.93
+    },
+    {
+      "hour": 28,
+      "intensity": 225.0
+    },
+    {
+      "hour": 29,
+      "intensity": 261.18
+    },
+    {
+      "hour": 30,
+      "intensity": 300.0
+    },
+    {
+      "hour": 31,
+      "intensity": 338.82
+    },
+    {
+      "hour": 32,
+      "intensity": 375.0
+    },
+    {
+      "hour": 33,
+      "intensity": 406.07
+    },
+    {
+      "hour": 34,
+      "intensity": 429.9
+    },
+    {
+      "hour": 35,
+      "intensity": 444.89
+    },
+    {
+      "hour": 36,
+      "intensity": 450.0
+    },
+    {
+      "hour": 37,
+      "intensity": 444.89
+    },
+    {
+      "hour": 38,
+      "intensity": 429.9
+    },
+    {
+      "hour": 39,
+      "intensity": 406.07
+    },
+    {
+      "hour": 40,
+      "intensity": 375.0
+    },
+    {
+      "hour": 41,
+      "intensity": 338.82
+    },
+    {
+      "hour": 42,
+      "intensity": 300.0
+    },
+    {
+      "hour": 43,
+      "intensity": 261.18
+    },
+    {
+      "hour": 44,
+      "intensity": 225.0
+    },
+    {
+      "hour": 45,
+      "intensity": 193.93
+    },
+    {
+      "hour": 46,
+      "intensity": 170.1
+    },
+    {
+      "hour": 47,
+      "intensity": 155.11
+    }
+  ],
+  "jobs": [
+    {
+      "id": 1,
+      "submitHour": 1,
+      "requestedCpus": 126,
+      "runtimeHours": 11,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 1,
+      "delayHours": 0,
+      "baselineEmissionsKg": 6.22512,
+      "optimizedEmissionsKg": 6.22512,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 3,
+      "submitHour": 13,
+      "requestedCpus": 2,
+      "runtimeHours": 3,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 13,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.129111,
+      "optimizedEmissionsKg": 0.129111,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 5,
+      "submitHour": 0,
+      "requestedCpus": 104,
+      "runtimeHours": 39,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 0,
+      "delayHours": 0,
+      "baselineEmissionsKg": 18.79563,
+      "optimizedEmissionsKg": 18.79563,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 6,
+      "submitHour": 21,
+      "requestedCpus": 1,
+      "runtimeHours": 2,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 21,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.031452,
+      "optimizedEmissionsKg": 0.031452,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 9,
+      "submitHour": 23,
+      "requestedCpus": 105,
+      "runtimeHours": 6,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 23,
+      "delayHours": 0,
+      "baselineEmissionsKg": 1.662012,
+      "optimizedEmissionsKg": 1.662012,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 10,
+      "submitHour": 18,
+      "requestedCpus": 6,
+      "runtimeHours": 1,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 24,
+      "delayHours": 6,
+      "baselineEmissionsKg": 0.04752,
+      "optimizedEmissionsKg": 0.02376,
+      "savingsKg": 0.02376,
+      "percentSavings": 50.0,
+      "status": "Scheduled"
+    },
+    {
+      "id": 11,
+      "submitHour": 23,
+      "requestedCpus": 9,
+      "runtimeHours": 3,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 23,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.09278,
+      "optimizedEmissionsKg": 0.09278,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 12,
+      "submitHour": 43,
+      "requestedCpus": 24,
+      "runtimeHours": 5,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 43,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.419822,
+      "optimizedEmissionsKg": 0.419822,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 13,
+      "submitHour": 15,
+      "requestedCpus": 52,
+      "runtimeHours": 16,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 16,
+      "delayHours": 1,
+      "baselineEmissionsKg": 3.185139,
+      "optimizedEmissionsKg": 3.12994,
+      "savingsKg": 0.055199,
+      "percentSavings": 1.73,
+      "status": "Completed"
+    },
+    {
+      "id": 15,
+      "submitHour": 14,
+      "requestedCpus": 36,
+      "runtimeHours": 16,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 16,
+      "delayHours": 2,
+      "baselineEmissionsKg": 2.367758,
+      "optimizedEmissionsKg": 2.251361,
+      "savingsKg": 0.116397,
+      "percentSavings": 4.92,
+      "status": "Completed"
+    },
+    {
+      "id": 16,
+      "submitHour": 36,
+      "requestedCpus": 32,
+      "runtimeHours": 2,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 42,
+      "delayHours": 6,
+      "baselineEmissionsKg": 0.476797,
+      "optimizedEmissionsKg": 0.298997,
+      "savingsKg": 0.1778,
+      "percentSavings": 37.29,
+      "status": "Scheduled"
+    },
+    {
+      "id": 17,
+      "submitHour": 41,
+      "requestedCpus": 18,
+      "runtimeHours": 3,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 41,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.29808,
+      "optimizedEmissionsKg": 0.29808,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 19,
+      "submitHour": 8,
+      "requestedCpus": 20,
+      "runtimeHours": 1,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 24,
+      "delayHours": 16,
+      "baselineEmissionsKg": 0.135,
+      "optimizedEmissionsKg": 0.054,
+      "savingsKg": 0.081,
+      "percentSavings": 60.0,
+      "status": "Scheduled"
+    },
+    {
+      "id": 20,
+      "submitHour": 9,
+      "requestedCpus": 224,
+      "runtimeHours": 39,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 9,
+      "delayHours": 0,
+      "baselineEmissionsKg": 40.332484,
+      "optimizedEmissionsKg": 40.332484,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 21,
+      "submitHour": 38,
+      "requestedCpus": 18,
+      "runtimeHours": 5,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 43,
+      "delayHours": 5,
+      "baselineEmissionsKg": 0.61265,
+      "optimizedEmissionsKg": 0.332962,
+      "savingsKg": 0.279688,
+      "percentSavings": 45.65,
+      "status": "Scheduled"
+    },
+    {
+      "id": 23,
+      "submitHour": 10,
+      "requestedCpus": 18,
+      "runtimeHours": 6,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 21,
+      "delayHours": 11,
+      "baselineEmissionsKg": 0.862991,
+      "optimizedEmissionsKg": 0.329329,
+      "savingsKg": 0.533662,
+      "percentSavings": 61.84,
+      "status": "Scheduled"
+    },
+    {
+      "id": 24,
+      "submitHour": 32,
+      "requestedCpus": 28,
+      "runtimeHours": 5,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 43,
+      "delayHours": 11,
+      "baselineEmissionsKg": 1.000705,
+      "optimizedEmissionsKg": 0.477728,
+      "savingsKg": 0.522977,
+      "percentSavings": 52.26,
+      "status": "Scheduled"
+    },
+    {
+      "id": 25,
+      "submitHour": 19,
+      "requestedCpus": 227,
+      "runtimeHours": 24,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 19,
+      "delayHours": 0,
+      "baselineEmissionsKg": 24.05376,
+      "optimizedEmissionsKg": 24.05376,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 27,
+      "submitHour": 23,
+      "requestedCpus": 3,
+      "runtimeHours": 1,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 23,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.017869,
+      "optimizedEmissionsKg": 0.017869,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 28,
+      "submitHour": 5,
+      "requestedCpus": 42,
+      "runtimeHours": 6,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 21,
+      "delayHours": 16,
+      "baselineEmissionsKg": 1.428704,
+      "optimizedEmissionsKg": 0.672976,
+      "savingsKg": 0.755728,
+      "percentSavings": 52.9,
+      "status": "Scheduled"
+    },
+    {
+      "id": 29,
+      "submitHour": 8,
+      "requestedCpus": 48,
+      "runtimeHours": 21,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 14,
+      "delayHours": 6,
+      "baselineEmissionsKg": 4.80816,
+      "optimizedEmissionsKg": 4.47252,
+      "savingsKg": 0.33564,
+      "percentSavings": 6.98,
+      "status": "Scheduled"
+    },
+    {
+      "id": 33,
+      "submitHour": 35,
+      "requestedCpus": 2,
+      "runtimeHours": 1,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 35,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.044845,
+      "optimizedEmissionsKg": 0.044845,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 34,
+      "submitHour": 14,
+      "requestedCpus": 40,
+      "runtimeHours": 14,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 17,
+      "delayHours": 3,
+      "baselineEmissionsKg": 2.283714,
+      "optimizedEmissionsKg": 2.00845,
+      "savingsKg": 0.275264,
+      "percentSavings": 12.05,
+      "status": "Scheduled"
+    },
+    {
+      "id": 35,
+      "submitHour": 42,
+      "requestedCpus": 19,
+      "runtimeHours": 5,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 42,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.397513,
+      "optimizedEmissionsKg": 0.397513,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 38,
+      "submitHour": 46,
+      "requestedCpus": 5,
+      "runtimeHours": 1,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 47,
+      "delayHours": 1,
+      "baselineEmissionsKg": 0.024494,
+      "optimizedEmissionsKg": 0.022336,
+      "savingsKg": 0.002158,
+      "percentSavings": 8.81,
+      "status": "Completed"
+    },
+    {
+      "id": 39,
+      "submitHour": 6,
+      "requestedCpus": 11,
+      "runtimeHours": 2,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 6,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.147184,
+      "optimizedEmissionsKg": 0.147184,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 40,
+      "submitHour": 11,
+      "requestedCpus": 3,
+      "runtimeHours": 1,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 17,
+      "delayHours": 6,
+      "baselineEmissionsKg": 0.051251,
+      "optimizedEmissionsKg": 0.039032,
+      "savingsKg": 0.012219,
+      "percentSavings": 23.84,
+      "status": "Scheduled"
+    },
+    {
+      "id": 41,
+      "submitHour": 35,
+      "requestedCpus": 1,
+      "runtimeHours": 3,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 45,
+      "delayHours": 10,
+      "baselineEmissionsKg": 0.115757,
+      "optimizedEmissionsKg": 0.044854,
+      "savingsKg": 0.070903,
+      "percentSavings": 61.25,
+      "status": "Scheduled"
+    },
+    {
+      "id": 42,
+      "submitHour": 5,
+      "requestedCpus": 256,
+      "runtimeHours": 22,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 13,
+      "delayHours": 8,
+      "baselineEmissionsKg": 25.485973,
+      "optimizedEmissionsKg": 23.697125,
+      "savingsKg": 1.788848,
+      "percentSavings": 7.02,
+      "status": "Scheduled"
+    },
+    {
+      "id": 43,
+      "submitHour": 25,
+      "requestedCpus": 32,
+      "runtimeHours": 2,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 25,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.173272,
+      "optimizedEmissionsKg": 0.173272,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 45,
+      "submitHour": 35,
+      "requestedCpus": 116,
+      "runtimeHours": 8,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 40,
+      "delayHours": 5,
+      "baselineEmissionsKg": 5.557507,
+      "optimizedEmissionsKg": 3.51815,
+      "savingsKg": 2.039357,
+      "percentSavings": 36.7,
+      "status": "Scheduled"
+    },
+    {
+      "id": 46,
+      "submitHour": 3,
+      "requestedCpus": 22,
+      "runtimeHours": 6,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 3,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.6586,
+      "optimizedEmissionsKg": 0.6586,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 47,
+      "submitHour": 30,
+      "requestedCpus": 2,
+      "runtimeHours": 3,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 30,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.102193,
+      "optimizedEmissionsKg": 0.102193,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 48,
+      "submitHour": 38,
+      "requestedCpus": 1,
+      "runtimeHours": 2,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 38,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.072228,
+      "optimizedEmissionsKg": 0.072228,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 49,
+      "submitHour": 15,
+      "requestedCpus": 212,
+      "runtimeHours": 14,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 17,
+      "delayHours": 2,
+      "baselineEmissionsKg": 10.372305,
+      "optimizedEmissionsKg": 9.685193,
+      "savingsKg": 0.687112,
+      "percentSavings": 6.62,
+      "status": "Completed"
+    },
+    {
+      "id": 50,
+      "submitHour": 37,
+      "requestedCpus": 22,
+      "runtimeHours": 3,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 43,
+      "delayHours": 6,
+      "baselineEmissionsKg": 0.497998,
+      "optimizedEmissionsKg": 0.264427,
+      "savingsKg": 0.233571,
+      "percentSavings": 46.9,
+      "status": "Scheduled"
+    },
+    {
+      "id": 51,
+      "submitHour": 15,
+      "requestedCpus": 65,
+      "runtimeHours": 8,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 20,
+      "delayHours": 5,
+      "baselineEmissionsKg": 2.288261,
+      "optimizedEmissionsKg": 1.424586,
+      "savingsKg": 0.863675,
+      "percentSavings": 37.74,
+      "status": "Scheduled"
+    },
+    {
+      "id": 52,
+      "submitHour": 20,
+      "requestedCpus": 28,
+      "runtimeHours": 1,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 24,
+      "delayHours": 4,
+      "baselineEmissionsKg": 0.10692,
+      "optimizedEmissionsKg": 0.07128,
+      "savingsKg": 0.03564,
+      "percentSavings": 33.33,
+      "status": "Scheduled"
+    },
+    {
+      "id": 53,
+      "submitHour": 6,
+      "requestedCpus": 82,
+      "runtimeHours": 25,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 23,
+      "delayHours": 17,
+      "baselineEmissionsKg": 9.396,
+      "optimizedEmissionsKg": 9.214482,
+      "savingsKg": 0.181518,
+      "percentSavings": 1.93,
+      "status": "Scheduled"
+    },
+    {
+      "id": 54,
+      "submitHour": 22,
+      "requestedCpus": 1,
+      "runtimeHours": 2,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 22,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.028098,
+      "optimizedEmissionsKg": 0.028098,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 55,
+      "submitHour": 34,
+      "requestedCpus": 26,
+      "runtimeHours": 5,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 43,
+      "delayHours": 9,
+      "baselineEmissionsKg": 0.981893,
+      "optimizedEmissionsKg": 0.448775,
+      "savingsKg": 0.533118,
+      "percentSavings": 54.29,
+      "status": "Scheduled"
+    },
+    {
+      "id": 57,
+      "submitHour": 8,
+      "requestedCpus": 65,
+      "runtimeHours": 7,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 21,
+      "delayHours": 13,
+      "baselineEmissionsKg": 3.004495,
+      "optimizedEmissionsKg": 1.197786,
+      "savingsKg": 1.806709,
+      "percentSavings": 60.13,
+      "status": "Scheduled"
+    },
+    {
+      "id": 58,
+      "submitHour": 18,
+      "requestedCpus": 2,
+      "runtimeHours": 1,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 18,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.03024,
+      "optimizedEmissionsKg": 0.03024,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 59,
+      "submitHour": 32,
+      "requestedCpus": 189,
+      "runtimeHours": 15,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 33,
+      "delayHours": 1,
+      "baselineEmissionsKg": 14.668495,
+      "optimizedEmissionsKg": 14.05421,
+      "savingsKg": 0.614285,
+      "percentSavings": 4.19,
+      "status": "Completed"
+    },
+    {
+      "id": 60,
+      "submitHour": 17,
+      "requestedCpus": 5,
+      "runtimeHours": 3,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 23,
+      "delayHours": 6,
+      "baselineEmissionsKg": 0.1296,
+      "optimizedEmissionsKg": 0.066272,
+      "savingsKg": 0.063328,
+      "percentSavings": 48.86,
+      "status": "Scheduled"
+    },
+    {
+      "id": 61,
+      "submitHour": 16,
+      "requestedCpus": 52,
+      "runtimeHours": 21,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 16,
+      "delayHours": 0,
+      "baselineEmissionsKg": 4.85843,
+      "optimizedEmissionsKg": 4.85843,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 62,
+      "submitHour": 7,
+      "requestedCpus": 41,
+      "runtimeHours": 21,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 7,
+      "delayHours": 0,
+      "baselineEmissionsKg": 4.248514,
+      "optimizedEmissionsKg": 4.248514,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 63,
+      "submitHour": 35,
+      "requestedCpus": 8,
+      "runtimeHours": 2,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 35,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.167523,
+      "optimizedEmissionsKg": 0.167523,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 64,
+      "submitHour": 2,
+      "requestedCpus": 32,
+      "runtimeHours": 2,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 2,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.193955,
+      "optimizedEmissionsKg": 0.193955,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 65,
+      "submitHour": 22,
+      "requestedCpus": 103,
+      "runtimeHours": 23,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 22,
+      "delayHours": 0,
+      "baselineEmissionsKg": 10.89584,
+      "optimizedEmissionsKg": 10.89584,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 67,
+      "submitHour": 21,
+      "requestedCpus": 84,
+      "runtimeHours": 12,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 21,
+      "delayHours": 0,
+      "baselineEmissionsKg": 3.4453,
+      "optimizedEmissionsKg": 3.4453,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 68,
+      "submitHour": 24,
+      "requestedCpus": 36,
+      "runtimeHours": 11,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 24,
+      "delayHours": 0,
+      "baselineEmissionsKg": 1.774217,
+      "optimizedEmissionsKg": 1.774217,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 69,
+      "submitHour": 22,
+      "requestedCpus": 142,
+      "runtimeHours": 26,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 22,
+      "delayHours": 0,
+      "baselineEmissionsKg": 15.929365,
+      "optimizedEmissionsKg": 15.929365,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 70,
+      "submitHour": 21,
+      "requestedCpus": 3,
+      "runtimeHours": 2,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 21,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.041936,
+      "optimizedEmissionsKg": 0.041936,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 71,
+      "submitHour": 43,
+      "requestedCpus": 100,
+      "runtimeHours": 4,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 44,
+      "delayHours": 1,
+      "baselineEmissionsKg": 1.285518,
+      "optimizedEmissionsKg": 1.12514,
+      "savingsKg": 0.160378,
+      "percentSavings": 12.48,
+      "status": "Completed"
+    },
+    {
+      "id": 72,
+      "submitHour": 11,
+      "requestedCpus": 212,
+      "runtimeHours": 14,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 17,
+      "delayHours": 6,
+      "baselineEmissionsKg": 13.576912,
+      "optimizedEmissionsKg": 9.685193,
+      "savingsKg": 3.891719,
+      "percentSavings": 28.66,
+      "status": "Scheduled"
+    },
+    {
+      "id": 74,
+      "submitHour": 24,
+      "requestedCpus": 105,
+      "runtimeHours": 12,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 24,
+      "delayHours": 0,
+      "baselineEmissionsKg": 5.4648,
+      "optimizedEmissionsKg": 5.4648,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 75,
+      "submitHour": 33,
+      "requestedCpus": 29,
+      "runtimeHours": 3,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 39,
+      "delayHours": 6,
+      "baselineEmissionsKg": 0.627109,
+      "optimizedEmissionsKg": 0.548298,
+      "savingsKg": 0.078811,
+      "percentSavings": 12.57,
+      "status": "Scheduled"
+    },
+    {
+      "id": 76,
+      "submitHour": 21,
+      "requestedCpus": 223,
+      "runtimeHours": 19,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 21,
+      "delayHours": 0,
+      "baselineEmissionsKg": 18.71424,
+      "optimizedEmissionsKg": 18.71424,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 77,
+      "submitHour": 19,
+      "requestedCpus": 25,
+      "runtimeHours": 3,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 23,
+      "delayHours": 4,
+      "baselineEmissionsKg": 0.293808,
+      "optimizedEmissionsKg": 0.198815,
+      "savingsKg": 0.094993,
+      "percentSavings": 32.33,
+      "status": "Scheduled"
+    },
+    {
+      "id": 78,
+      "submitHour": 8,
+      "requestedCpus": 10,
+      "runtimeHours": 6,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 21,
+      "delayHours": 13,
+      "baselineEmissionsKg": 0.550962,
+      "optimizedEmissionsKg": 0.21478,
+      "savingsKg": 0.336182,
+      "percentSavings": 61.02,
+      "status": "Scheduled"
+    },
+    {
+      "id": 79,
+      "submitHour": 11,
+      "requestedCpus": 110,
+      "runtimeHours": 16,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 16,
+      "delayHours": 5,
+      "baselineEmissionsKg": 7.733686,
+      "optimizedEmissionsKg": 6.314792,
+      "savingsKg": 1.418894,
+      "percentSavings": 18.35,
+      "status": "Scheduled"
+    },
+    {
+      "id": 80,
+      "submitHour": 18,
+      "requestedCpus": 2,
+      "runtimeHours": 3,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 18,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.079247,
+      "optimizedEmissionsKg": 0.079247,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 81,
+      "submitHour": 28,
+      "requestedCpus": 18,
+      "runtimeHours": 5,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 28,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.4968,
+      "optimizedEmissionsKg": 0.4968,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 84,
+      "submitHour": 12,
+      "requestedCpus": 8,
+      "runtimeHours": 1,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 18,
+      "delayHours": 6,
+      "baselineEmissionsKg": 0.08424,
+      "optimizedEmissionsKg": 0.05616,
+      "savingsKg": 0.02808,
+      "percentSavings": 33.33,
+      "status": "Scheduled"
+    },
+    {
+      "id": 85,
+      "submitHour": 4,
+      "requestedCpus": 18,
+      "runtimeHours": 6,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 4,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.63129,
+      "optimizedEmissionsKg": 0.63129,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 86,
+      "submitHour": 24,
+      "requestedCpus": 95,
+      "runtimeHours": 11,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 24,
+      "delayHours": 0,
+      "baselineEmissionsKg": 4.327358,
+      "optimizedEmissionsKg": 4.327358,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 87,
+      "submitHour": 6,
+      "requestedCpus": 86,
+      "runtimeHours": 9,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 20,
+      "delayHours": 14,
+      "baselineEmissionsKg": 4.742953,
+      "optimizedEmissionsKg": 2.146802,
+      "savingsKg": 2.596151,
+      "percentSavings": 54.74,
+      "status": "Scheduled"
+    },
+    {
+      "id": 88,
+      "submitHour": 29,
+      "requestedCpus": 38,
+      "runtimeHours": 7,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 41,
+      "delayHours": 12,
+      "baselineEmissionsKg": 1.582589,
+      "optimizedEmissionsKg": 1.018051,
+      "savingsKg": 0.564538,
+      "percentSavings": 35.67,
+      "status": "Scheduled"
+    },
+    {
+      "id": 91,
+      "submitHour": 10,
+      "requestedCpus": 127,
+      "runtimeHours": 18,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 15,
+      "delayHours": 5,
+      "baselineEmissionsKg": 10.062702,
+      "optimizedEmissionsKg": 8.73294,
+      "savingsKg": 1.329762,
+      "percentSavings": 13.21,
+      "status": "Scheduled"
+    },
+    {
+      "id": 92,
+      "submitHour": 40,
+      "requestedCpus": 12,
+      "runtimeHours": 6,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 42,
+      "delayHours": 2,
+      "baselineEmissionsKg": 0.414674,
+      "optimizedEmissionsKg": 0.319542,
+      "savingsKg": 0.095132,
+      "percentSavings": 22.94,
+      "status": "Completed"
+    },
+    {
+      "id": 93,
+      "submitHour": 45,
+      "requestedCpus": 13,
+      "runtimeHours": 3,
+      "flexibilityClass": "semi-flexible",
+      "scheduledStart": 45,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.134561,
+      "optimizedEmissionsKg": 0.134561,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 94,
+      "submitHour": 5,
+      "requestedCpus": 99,
+      "runtimeHours": 26,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 22,
+      "delayHours": 17,
+      "baselineEmissionsKg": 11.623143,
+      "optimizedEmissionsKg": 11.269754,
+      "savingsKg": 0.353389,
+      "percentSavings": 3.04,
+      "status": "Scheduled"
+    },
+    {
+      "id": 95,
+      "submitHour": 13,
+      "requestedCpus": 1,
+      "runtimeHours": 2,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 13,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.075582,
+      "optimizedEmissionsKg": 0.075582,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 96,
+      "submitHour": 3,
+      "requestedCpus": 10,
+      "runtimeHours": 4,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 22,
+      "delayHours": 19,
+      "baselineEmissionsKg": 0.211704,
+      "optimizedEmissionsKg": 0.136149,
+      "savingsKg": 0.075555,
+      "percentSavings": 35.69,
+      "status": "Scheduled"
+    },
+    {
+      "id": 98,
+      "submitHour": 24,
+      "requestedCpus": 31,
+      "runtimeHours": 5,
+      "flexibilityClass": "flexible",
+      "scheduledStart": 24,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.463522,
+      "optimizedEmissionsKg": 0.463522,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    },
+    {
+      "id": 100,
+      "submitHour": 24,
+      "requestedCpus": 14,
+      "runtimeHours": 6,
+      "flexibilityClass": "rigid",
+      "scheduledStart": 24,
+      "delayHours": 0,
+      "baselineEmissionsKg": 0.316096,
+      "optimizedEmissionsKg": 0.316096,
+      "savingsKg": 0.0,
+      "percentSavings": 0.0,
+      "status": "Completed"
+    }
+  ],
+  "aiSummary": "Our latest scheduling run successfully processed 77 jobs, achieving significant carbon savings of 23.113 kgCO2\u2014an impressive 15.3% average reduction in emissions. This efficiency, delivered with a total energy consumption of 1027.86 kWh, involved strategic optimization that resulted in 38 jobs experiencing an average delay of 7.5 hours."
+}

@@ -22,6 +22,7 @@ export type JobRecord = {
   carbonBaseline: number;
   carbonOptimized: number;
   scheduledStart: number;
+  delayHours?: number;
 };
 
 function deterministicOffset(index: number, amplitude: number, phase = 0): number {

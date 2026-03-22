@@ -1,6 +1,7 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowLeft, Clock, Leaf, Zap } from "lucide-react";
@@ -8,26 +9,97 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, Leaf, Clock, Zap, Sparkles } from "lucide-react";
+
+type ScoreResult = {
+  scheduled_start: number;
+  earliest_start: number;
+  optimized_intensity: number;
+  baseline_intensity: number;
+  baseline_co2_g: number;
+  optimized_co2_g: number;
+  delay_hours: number;
+};
 
 function ReportContent() {
   const params = useSearchParams();
   const cpus = Number(params.get("cpus") || 16);
   const runtime = Number(params.get("runtime") || 4);
   const flex = params.get("flex") || "semi-flexible";
-  const submittedCpus = Number(params.get("submittedCpus") || cpus);
-  const submittedRuntime = Number(params.get("submittedRuntime") || runtime);
-  const workloadClass = params.get("workloadClass") || "unknown";
-  const intensityLabel = params.get("intensityLabel") || "unknown";
-  const warnings = (params.get("warnings") || "")
-    .split(" | ")
-    .map((warning) => warning.trim())
-    .filter(Boolean);
-  const baselineCo2 = Number(params.get("baseline") || 0);
-  const optimizedCo2 = Number(params.get("optimized") || 0);
-  const saved = Number(params.get("saved") || Math.max(0, baselineCo2 - optimizedCo2));
-  const reduction = baselineCo2 === 0 ? 0 : Math.round((saved / baselineCo2) * 100);
-  const delay = Number(params.get("delay") || 0);
-  const scheduledStart = Number(params.get("scheduledStart") || 0);
+  const submitHour = Number(params.get("submit_hour") || 0);
+  const submitMinute = Number(params.get("submit_minute") || 0);
+  const fileBytes = Number(params.get("file_bytes") || 0);
+
+  const [result, setResult] = useState<ScoreResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cpus, runtime, flexibility: flex, submit_hour: submitHour, submit_minute: submitMinute, file_bytes: fileBytes }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) setError(data.error);
+        else setResult(data);
+      })
+      .catch((e) => setError(e.message));
+  }, [cpus, runtime, flex, submitHour, submitMinute, fileBytes]);
+
+  // Save to DB once result arrives
+  const [wasSaved, setWasSaved] = useState(false);
+  useEffect(() => {
+    if (!result || wasSaved) return;
+    fetch("/api/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        submitHour,
+        requestedCpus: cpus,
+        runtimeHours: runtime,
+        flexibilityClass: flex,
+        status: "Completed",
+        carbonBaseline: Math.round(result.baseline_co2_g),
+        carbonOptimized: Math.round(result.optimized_co2_g),
+        scheduledStart: result.scheduled_start,
+        delayHours: result.delay_hours,
+      }),
+    });
+
+    // Fetch AI carbon coach explanation
+    const saved = Math.round(result.baseline_co2_g) - Math.round(result.optimized_co2_g);
+    const reduction = Math.round((saved / result.baseline_co2_g) * 100);
+    fetch("/api/carbon-coach", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cpus, runtime, flexibility: flex,
+        baselineIntensity: result.baseline_intensity,
+        optimizedIntensity: result.optimized_intensity,
+        scheduledStart: result.scheduled_start,
+        delayHours: result.delay_hours,
+        saved, reduction,
+      }),
+    })
+      .then((r) => r.json())
+      .then((d) => { if (d.explanation) setAiExplanation(d.explanation); });
+
+    setWasSaved(true);
+  }, [result]);
+
+  if (!result && !error) {
+    return <div className="p-10 text-center text-muted-foreground">Calculating optimal schedule...</div>;
+  }
+
+  const powerPerCpu = 0.15;
+  const energyKwh = cpus * powerPerCpu * runtime;
+  const baselineCo2 = result ? Math.round(result.baseline_co2_g) : Math.round(energyKwh * 320);
+  const optimizedCo2 = result ? Math.round(result.optimized_co2_g) : Math.round(energyKwh * 185);
+  const saved = baselineCo2 - optimizedCo2;
+  const reduction = Math.round((saved / baselineCo2) * 100);
+  const delay = result ? result.delay_hours : (flex === "rigid" ? 0 : flex === "semi-flexible" ? 3 : 8);
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
@@ -130,13 +202,25 @@ function ReportContent() {
         </CardContent>
       </Card>
 
+      {/* Carbon Coach AI explanation */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Sparkles className="size-5 text-primary" /> Carbon Coach
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {aiExplanation ? (
+            <p className="text-sm leading-relaxed text-muted-foreground">{aiExplanation}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground animate-pulse">Generating AI insight...</p>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="flex gap-3">
-        <Link href="/">
-          <Button variant="outline">Back to Dashboard</Button>
-        </Link>
-        <Link href="/history">
-          <Button>View History</Button>
-        </Link>
+        <Link href="/"><Button variant="outline">Back to Dashboard</Button></Link>
+        <Link href="/history"><Button>View History</Button></Link>
       </div>
     </div>
   );

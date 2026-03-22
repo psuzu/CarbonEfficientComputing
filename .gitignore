@@ -24,4 +24,9 @@ outputs/plots/
 
 # Generated data
 jobs_input.csv
+<<<<<<< HEAD
 data/jobs_input.csv
+=======
+
+.env
+>>>>>>> frontend
