@@ -5,56 +5,99 @@ import { type JobRecord } from "@/lib/jobs";
 import { Badge } from "@/components/ui/badge";
 import { Trash2 } from "lucide-react";
 
-// 1 forecast-hour = 15 real seconds of simulation
-const SECONDS_PER_FORECAST_HOUR = 15;
-
-type SortableJobKey = Exclude<keyof JobRecord, "delayHours">;
-
 type LiveJob = JobRecord & {
+  jobName?: string;
+  archiveName?: string;
+  workloadClass?: string;
   complexity?: string;
   startedAt?: string | null;
   completedAt?: string | null;
   queuePosition?: number | null;
 };
 
-function useCountdown(startedAt: string | null | undefined, runtimeHours: number) {
-  const [remaining, setRemaining] = useState<number | null>(null);
+// 1 forecast-hour = 15 real seconds of simulation
+const SECONDS_PER_FORECAST_HOUR = 15;
 
-  useEffect(() => {
-    if (!startedAt) { setRemaining(null); return; }
-    const duration = Math.min(Math.max(runtimeHours * SECONDS_PER_FORECAST_HOUR, 60), 120);
-    const tick = () => {
-      const elapsed = (Date.now() - new Date(startedAt).getTime()) / 1000;
-      const left = Math.max(0, duration - elapsed);
-      setRemaining(Math.ceil(left));
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [startedAt, runtimeHours]);
+type SortableJobKey = Exclude<keyof LiveJob, "delayHours">;
 
-  return remaining;
+function getSimulatedDurationSeconds(runtimeHours: number) {
+  return Math.min(Math.max(runtimeHours * SECONDS_PER_FORECAST_HOUR, 60), 120);
 }
 
-function CountdownCell({ job }: { job: LiveJob }) {
-  const remaining = useCountdown(job.startedAt, job.runtimeHours);
-  if (job.status !== "Running" || remaining === null) return null;
-  const mins = Math.floor(remaining / 60);
-  const secs = remaining % 60;
+function getRunningProgress(job: LiveJob, nowMs: number) {
+  if (job.status === "Completed") {
+    return { percent: 100, remainingSeconds: 0 };
+  }
+
+  if (job.status !== "Running" || !job.startedAt) {
+    return { percent: 0, remainingSeconds: null };
+  }
+
+  const durationSeconds = getSimulatedDurationSeconds(job.runtimeHours);
+  const elapsedSeconds = Math.max(
+    0,
+    (nowMs - new Date(job.startedAt).getTime()) / 1000,
+  );
+  const percent = Math.max(
+    0,
+    Math.min(100, Math.round((elapsedSeconds / durationSeconds) * 100)),
+  );
+  const remainingSeconds = Math.max(0, Math.ceil(durationSeconds - elapsedSeconds));
+
+  return { percent, remainingSeconds };
+}
+
+function ProgressCell({ job, nowMs }: { job: LiveJob; nowMs: number }) {
+  const { percent, remainingSeconds } = getRunningProgress(job, nowMs);
+
+  if (job.status === "Queued") {
+    return <span className="text-xs text-muted-foreground">Waiting for capacity</span>;
+  }
+
+  if (job.status === "Completed") {
+    return (
+      <div className="min-w-32">
+        <div className="mb-1 flex items-center justify-between text-xs">
+          <span className="font-medium text-foreground">100%</span>
+          <span className="text-green-600">Done</span>
+        </div>
+        <div className="h-2 overflow-hidden rounded-full bg-muted">
+          <div className="h-full w-full rounded-full bg-green-500" />
+        </div>
+      </div>
+    );
+  }
+
+  if (remainingSeconds === null) return null;
+
+  const mins = Math.floor(remainingSeconds / 60);
+  const secs = remainingSeconds % 60;
   return (
-    <span className="text-xs text-blue-500 font-mono ml-1">
-      ({mins > 0 ? `${mins}m ` : ""}{secs}s left)
-    </span>
+    <div className="min-w-32">
+      <div className="mb-1 flex items-center justify-between text-xs">
+        <span className="font-medium text-foreground">{percent}%</span>
+        <span className="font-mono text-blue-500">
+          {mins > 0 ? `${mins}m ` : ""}{secs}s left
+        </span>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full bg-blue-500 transition-[width] duration-1000 ease-linear"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
   );
 }
 
 export default function HistoryPage() {
   const [jobs, setJobs] = useState<LiveJob[]>([]);
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<keyof StoredJob>("submittedAt");
+  const [sortKey, setSortKey] = useState<SortableJobKey>("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const pageSize = 10;
 
   const fetchJobs = useCallback(() => {
@@ -70,6 +113,14 @@ export default function HistoryPage() {
     return () => clearInterval(id);
   }, [fetchJobs]);
 
+  useEffect(() => {
+    const hasRunningJobs = jobs.some((job) => job.status === "Running");
+    if (!hasRunningJobs) return;
+
+    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [jobs]);
+
   const filtered = useMemo(() => {
     if (!search) return jobs;
     const term = search.toLowerCase();
@@ -78,7 +129,7 @@ export default function HistoryPage() {
         job.id.toString().includes(term) ||
         job.flexibilityClass.toLowerCase().includes(term) ||
         job.status.toLowerCase().includes(term) ||
-        job.workloadClass.toLowerCase().includes(term),
+        (job.workloadClass ?? "").toLowerCase().includes(term),
     );
   }, [jobs, search]);
 
@@ -98,7 +149,7 @@ export default function HistoryPage() {
   const paginated = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const allPageSelected = paginated.length > 0 && paginated.every((job) => selected.has(job.id));
 
-  const handleSort = (key: keyof StoredJob) => {
+  const handleSort = (key: SortableJobKey) => {
     if (sortKey === key) {
       setSortDir(sortDir === "asc" ? "desc" : "asc");
     } else {
@@ -145,7 +196,31 @@ export default function HistoryPage() {
     }
   };
 
-  const indicator = (key: keyof StoredJob) =>
+  const deleteJob = async (id: number) => {
+    try {
+      const response = await fetch("/api/jobs", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: [id] }),
+      });
+
+      if (!response.ok) {
+        return;
+      }
+
+      setJobs((prev) => prev.filter((job) => job.id !== id));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      setCurrentPage((prev) => Math.min(prev, Math.max(1, Math.ceil((sorted.length - 1) / pageSize))));
+    } catch (error) {
+      console.error(`Failed to delete job ${id}.`, error);
+    }
+  };
+
+  const indicator = (key: SortableJobKey) =>
     sortKey !== key ? "<>" : sortDir === "asc" ? "^" : "v";
 
   const statusColor = (status: string) => {
@@ -154,7 +229,7 @@ export default function HistoryPage() {
     return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
   };
 
-  const columns: { key: keyof StoredJob; label: string }[] = [
+  const columns: { key: SortableJobKey; label: string }[] = [
     { key: "id", label: "Job ID" },
     { key: "jobName", label: "Job Name" },
     { key: "archiveName", label: "Zip File" },
@@ -226,6 +301,9 @@ export default function HistoryPage() {
               <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                 Progress
               </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -252,10 +330,12 @@ export default function HistoryPage() {
                       <span className="ml-1 opacity-70">#{job.queuePosition}</span>
                     )}
                   </span>
-                  <CountdownCell job={job} />
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">{job.carbonBaseline}g</td>
                 <td className="px-4 py-3 text-sm text-primary font-medium">{job.carbonOptimized}g</td>
+                <td className="px-4 py-3">
+                  <ProgressCell job={job} nowMs={nowMs} />
+                </td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() => deleteJob(job.id)}

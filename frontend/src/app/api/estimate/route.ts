@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { createJob } from "@/lib/job-store";
-import { estimateSubmission } from "@/lib/carbon-estimation";
-import { analyzeJobArchive } from "@/lib/job-analysis";
+import { createJob } from "../../../lib/job-store";
+import { estimateSubmission } from "../../../lib/carbon-estimation";
+import { analyzeJobArchive } from "../../../lib/job-analysis";
 
 export const runtime = "nodejs";
 

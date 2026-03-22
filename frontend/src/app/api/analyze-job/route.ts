@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { analyzeJobArchive } from "@/lib/job-analysis";
+import { analyzeJobArchive } from "../../../lib/job-analysis";
 
 export const runtime = "nodejs";
 

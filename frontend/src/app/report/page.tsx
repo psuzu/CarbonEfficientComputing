@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Clock, Leaf, Sparkles, Zap } from "lucide-react";
@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator";
 type ScoreResult = {
   scheduled_start: number;
   earliest_start: number;
+  latest_start: number;
   optimized_intensity: number;
   baseline_intensity: number;
   baseline_co2_g: number;

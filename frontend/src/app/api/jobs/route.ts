@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { formatSupabaseError, supabaseServer } from '@/lib/supabase-server';
-import { runPythonScript } from '@/lib/python';
-import path from 'node:path';
+import { estimateSubmission } from '../../../lib/carbon-estimation';
 
 const MAX_CONCURRENT = 3;
 
@@ -65,7 +64,7 @@ function toFrontendJob(row: JobRow, metrics?: EstimatedMetrics | null, queuePosi
   const status = toTitleStatus(row.status);
   const archiveName = row.source_archive ?? "No archive";
   const progressPercent =
-    status === "Completed" ? 100 : status === "Running" ? 50 : status === "Scheduled" ? 10 : 0;
+    status === "Completed" ? 100 : status === "Running" ? 50 : 0;
 
   return {
     id: Number(row.job_id ?? row.id),
@@ -110,18 +109,12 @@ async function estimateJobMetrics(row: JobRow): Promise<EstimatedMetrics | null>
   if (requestedCpus < 1 || runtimeHours < 1 || submitHour < 0) return null;
 
   try {
-    const repoRoot = path.resolve(process.cwd(), '..');
-    const raw = await runPythonScript(
-      repoRoot,
-      'estimator.py',
-      JSON.stringify({
-        cpus: requestedCpus,
-        runtime_hours: runtimeHours,
-        submit_hour: submitHour,
-        flexibility_class: flexibilityClass,
-      }),
-    );
-    const estimate = JSON.parse(raw) as {
+    const estimate = estimateSubmission({
+      cpus: requestedCpus,
+      runtime_hours: runtimeHours,
+      submit_hour: submitHour,
+      flexibility_class: flexibilityClass as 'rigid' | 'semi-flexible' | 'flexible',
+    }) as {
       baseline_emissions_gco2e: number;
       optimized_emissions_gco2e: number;
       scheduled_start_hour: number;

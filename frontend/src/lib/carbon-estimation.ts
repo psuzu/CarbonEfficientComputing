@@ -1,4 +1,4 @@
-import { carbonForecast, mockJobs, type FlexibilityClass } from "@/lib/mock-data";
+import { carbonForecast, mockJobs, type FlexibilityClass } from "./mock-data";
 
 const POWER_PER_CPU_KW = 0.15;
 

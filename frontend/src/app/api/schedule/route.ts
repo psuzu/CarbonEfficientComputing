@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { buildSchedulePreview, buildSingleScheduleEstimate } from "@/lib/carbon-estimation";
+import { buildSchedulePreview, buildSingleScheduleEstimate } from "../../../lib/carbon-estimation";
 
 // GET /api/schedule  -> full batch simulation
 export async function GET() {

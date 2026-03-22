@@ -1,4 +1,4 @@
-import { readZipEntries } from "@/lib/zip";
+import { readZipEntries } from "./zip";
 
 type JobAnalysisResult = {
   analysis_source: "manifest" | "heuristic";
