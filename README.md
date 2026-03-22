@@ -1,5 +1,13 @@
 # CarbonEfficientComputing
 
+To run 
+
+```bash
+cd frontend/
+npm run dev
+# Open http://localhost:3000
+```
+
 Carbon-aware HPC scheduling prototype for UVA research computing.
 
 ## Current Structure

@@ -19,7 +19,8 @@ class ClusterState:
     jobs_queued: int = 0
 
     def __post_init__(self) -> None:
-        for field_name, value in (
+        # Capacity checks
+        for field, value in [
             ("total_nodes", self.total_nodes),
             ("total_processors", self.total_processors),
             ("total_gpus", self.total_gpus),
