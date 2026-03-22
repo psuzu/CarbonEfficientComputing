@@ -130,6 +130,7 @@ export default function SubmitJobPage() {
         formData.append("archive", archive);
         formData.append("cpus", String(form.cpus));
         formData.append("runtimeHours", String(form.runtime));
+        formData.append("flexibilityClass", form.flexibility);
 
         const analysisResponse = await fetch("/api/analyze-job", {
           method: "POST",
@@ -155,10 +156,14 @@ export default function SubmitJobPage() {
                 : payload.flexibility_class,
           };
         } else {
-          console.error("Job analysis failed; continuing with form values.", analysis.error);
+          const message = analysis.error || "Job analysis failed for the uploaded archive.";
+          setSubmissionError(message);
+          return;
         }
       } catch (error) {
-        console.error("Job analysis request failed; continuing with form values.", error);
+        console.error("Job analysis request failed.", error);
+        setSubmissionError("Uploaded job analysis failed. Please try again or submit without an archive.");
+        return;
       }
     }
 

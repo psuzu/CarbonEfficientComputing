@@ -1,7 +1,10 @@
 alter table public.jobs
   add column if not exists carbon_baseline numeric,
   add column if not exists carbon_optimized numeric,
-  add column if not exists scheduled_start integer;
+  add column if not exists scheduled_start integer,
+  add column if not exists workload_class text,
+  add column if not exists source_archive text,
+  add column if not exists file_bytes bigint;
 
 with curve(hour_idx, intensity) as (
   values
