@@ -9,6 +9,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
+type ScoreResult = {
+  scheduled_start: number;
+  earliest_start: number;
+  optimized_intensity: number;
+  baseline_intensity: number;
+  baseline_co2_g: number;
+  optimized_co2_g: number;
+  delay_hours: number;
+  all_windows_reserved: boolean;
+};
+
+type ReservedWindow = { windowStart: number; windowEnd: number };
+
 function ReportContent() {
   const params = useSearchParams();
   const cpus = Number(params.get("cpus") || 16);
@@ -20,18 +33,31 @@ function ReportContent() {
   const submitHour = Number(params.get("submit_hour") || 0);
   const submitMinute = Number(params.get("submit_minute") || 0);
   const fileBytes = Number(params.get("file_bytes") || 0);
-
   const submitterName = params.get("submitter_name") || "Anonymous Researcher";
+
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [aiExplanation, setAiExplanation] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/score", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cpus, runtime, flexibility: flex, submit_hour: submitHour, submit_minute: submitMinute, file_bytes: fileBytes }),
-    })
+    // First fetch reserved windows, then score with them
+    fetch("/api/windows")
+      .then((r) => r.json())
+      .then((windows: ReservedWindow[]) =>
+        fetch("/api/score", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cpus,
+            runtime,
+            flexibility: flex,
+            submit_hour: submitHour,
+            submit_minute: submitMinute,
+            file_bytes: fileBytes,
+            reserved_windows: windows,
+          }),
+        })
+      )
       .then((r) => r.json())
       .then((data) => {
         if (data.error) setError(data.error);
@@ -40,11 +66,11 @@ function ReportContent() {
       .catch((e) => setError(e.message));
   }, [cpus, runtime, flex, submitHour, submitMinute, fileBytes]);
 
-  // Save to DB once result arrives
   const wasSavedRef = useRef(false);
   useEffect(() => {
     if (!result || wasSavedRef.current) return;
     wasSavedRef.current = true;
+
     fetch("/api/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -54,15 +80,14 @@ function ReportContent() {
         runtimeHours: runtime,
         flexibilityClass: flex,
         submitterName,
-        status: "Completed",
         carbonBaseline: Math.round(result.baseline_co2_g),
         carbonOptimized: Math.round(result.optimized_co2_g),
         scheduledStart: result.scheduled_start,
         delayHours: result.delay_hours,
+        all_windows_reserved: result.all_windows_reserved,
       }),
     });
 
-    // Fetch AI carbon coach explanation
     const saved = Math.round(result.baseline_co2_g) - Math.round(result.optimized_co2_g);
     const reduction = Math.round((saved / result.baseline_co2_g) * 100);
     fetch("/api/carbon-coach", {
@@ -75,12 +100,12 @@ function ReportContent() {
         scheduledStart: result.scheduled_start,
         delayHours: result.delay_hours,
         saved, reduction,
+        queued: result.all_windows_reserved,
       }),
     })
       .then((r) => r.json())
       .then((d) => { if (d.explanation) setAiExplanation(d.explanation); });
-
-  }, [cpus, flex, result, runtime, submitHour]);
+  }, [cpus, flex, result, runtime, submitHour, submitterName]);
 
   if (!result && !error) {
     return <div className="p-10 text-center text-muted-foreground">Calculating optimal schedule...</div>;
@@ -94,20 +119,25 @@ function ReportContent() {
   const reduction = Math.round((saved / baselineCo2) * 100);
   const delay = result ? result.delay_hours : (flex === "rigid" ? 0 : flex === "semi-flexible" ? 3 : 8);
   const scheduledStart = result ? result.scheduled_start : submitHour + delay;
+  const isQueued = result?.all_windows_reserved === true;
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
-      <Link
-        href="/submit"
-        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-      >
+      <Link href="/submit" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="size-4" /> Back to Submit
       </Link>
 
       <h1 className="text-3xl font-bold">Scheduling Report</h1>
-      <p className="text-sm text-muted-foreground">
-        Job ID: {jobId} | Job Name: {jobName} | Zip File: {archiveName}
-      </p>
+
+      {isQueued && (
+        <Card className="border-yellow-500/40 bg-yellow-500/5">
+          <CardContent className="pt-4 pb-4">
+            <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium">
+              All green windows are currently reserved. Your job has been added to the queue and will run when a slot opens.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -127,11 +157,7 @@ function ReportContent() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Flexibility</p>
-              <Badge
-                variant={
-                  flex === "rigid" ? "destructive" : flex === "semi-flexible" ? "warning" : "success"
-                }
-              >
+              <Badge variant={flex === "rigid" ? "destructive" : flex === "semi-flexible" ? "warning" : "success"}>
                 {flex}
               </Badge>
             </div>
@@ -174,15 +200,15 @@ function ReportContent() {
           <Separator className="my-4" />
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="size-4" />
-            <span>
-              Job delayed by {delay} hours, scheduled to start at forecast hour {scheduledStart},
-              and must start by hour {latestStartHour}
-            </span>
+            {isQueued ? (
+              <span>Job queued — will be assigned to the next available green window</span>
+            ) : (
+              <span>Job delayed by {delay} hours and scheduled to start at forecast hour {scheduledStart}</span>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Carbon Coach AI explanation */}
       <Card className="border-primary/20">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -208,9 +234,7 @@ function ReportContent() {
 
 export default function ReportPage() {
   return (
-    <Suspense
-      fallback={<div className="p-10 text-center text-muted-foreground">Loading report...</div>}
-    >
+    <Suspense fallback={<div className="p-10 text-center text-muted-foreground">Loading report...</div>}>
       <ReportContent />
     </Suspense>
   );

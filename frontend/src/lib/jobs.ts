@@ -11,12 +11,16 @@ export type JobRecord = {
   runtimeHours: number;
   flexibilityClass: FlexibilityClass;
   complexityClass?: ComplexityClass;
+  complexity?: string;
   status: JobStatus;
   carbonBaseline: number;
   carbonOptimized: number;
   scheduledStart: number;
   delayHours?: number;
   submitterName?: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  queuePosition?: number | null;
   createdAt?: string | null;
   simulationStartTime?: string | null;
   simulationEndTime?: string | null;

@@ -1,12 +1,55 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { type JobRecord } from "@/lib/jobs";
 import { Badge } from "@/components/ui/badge";
-import type { StoredJob } from "@/lib/job-store";
+import { Trash2 } from "lucide-react";
+
+// 1 forecast-hour = 15 real seconds of simulation
+const SECONDS_PER_FORECAST_HOUR = 15;
+
+type SortableJobKey = Exclude<keyof JobRecord, "delayHours">;
+
+type LiveJob = JobRecord & {
+  complexity?: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  queuePosition?: number | null;
+};
+
+function useCountdown(startedAt: string | null | undefined, runtimeHours: number) {
+  const [remaining, setRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!startedAt) { setRemaining(null); return; }
+    const duration = Math.min(Math.max(runtimeHours * SECONDS_PER_FORECAST_HOUR, 60), 120);
+    const tick = () => {
+      const elapsed = (Date.now() - new Date(startedAt).getTime()) / 1000;
+      const left = Math.max(0, duration - elapsed);
+      setRemaining(Math.ceil(left));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [startedAt, runtimeHours]);
+
+  return remaining;
+}
+
+function CountdownCell({ job }: { job: LiveJob }) {
+  const remaining = useCountdown(job.startedAt, job.runtimeHours);
+  if (job.status !== "Running" || remaining === null) return null;
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+  return (
+    <span className="text-xs text-blue-500 font-mono ml-1">
+      ({mins > 0 ? `${mins}m ` : ""}{secs}s left)
+    </span>
+  );
+}
 
 export default function HistoryPage() {
-  const [jobs, setJobs] = useState<StoredJob[]>([]);
+  const [jobs, setJobs] = useState<LiveJob[]>([]);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<keyof StoredJob>("submittedAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -14,28 +57,18 @@ export default function HistoryPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const pageSize = 10;
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadJobs = async () => {
-      const response = await fetch("/api/jobs", { cache: "no-store" });
-      const payload = (await response.json()) as StoredJob[] | { jobs?: StoredJob[] };
-      const nextJobs = Array.isArray(payload) ? payload : payload.jobs;
-      if (!cancelled && Array.isArray(nextJobs)) {
-        setJobs(nextJobs);
-      }
-    };
-
-    void loadJobs();
-    const interval = window.setInterval(() => {
-      void loadJobs();
-    }, 3000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
+  const fetchJobs = useCallback(() => {
+    fetch("/api/jobs")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setJobs(data); });
   }, []);
+
+  // Tick simulation + refresh every 10s
+  useEffect(() => {
+    fetchJobs();
+    const id = setInterval(fetchJobs, 10_000);
+    return () => clearInterval(id);
+  }, [fetchJobs]);
 
   const filtered = useMemo(() => {
     if (!search) return jobs;
@@ -50,29 +83,14 @@ export default function HistoryPage() {
   }, [jobs, search]);
 
   const sorted = useMemo(() => {
-    const safeArray = Array.isArray(filtered) ? filtered : [];
-
-    return [...safeArray].sort((left, right) => {
-      const leftValue = left[sortKey];
-      const rightValue = right[sortKey];
-
-      if (sortKey === "submittedAt") {
-        const leftTime = new Date(String(leftValue)).getTime();
-        const rightTime = new Date(String(rightValue)).getTime();
-
-        if (leftTime < rightTime) return sortDir === "asc" ? -1 : 1;
-        if (leftTime > rightTime) return sortDir === "asc" ? 1 : -1;
-        return left.id - right.id;
-      }
-
-      if (leftValue === rightValue) return left.id - right.id;
-
-      if (leftValue === null || leftValue === undefined) return 1;
-      if (rightValue === null || rightValue === undefined) return -1;
-
-      if (leftValue < rightValue) return sortDir === "asc" ? -1 : 1;
-      if (leftValue > rightValue) return sortDir === "asc" ? 1 : -1;
-      return left.id - right.id;
+    return [...filtered].sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (av === bv) return 0;
+      if (av == null) return 1;
+      if (bv == null) return -1;
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
     });
   }, [filtered, sortKey, sortDir]);
 
@@ -89,16 +107,8 @@ export default function HistoryPage() {
     }
   };
 
-  const toggleSelect = (jobId: number) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(jobId)) {
-        next.delete(jobId);
-      } else {
-        next.add(jobId);
-      }
-      return next;
-    });
+  const toggleSelect = (id: number) => {
+    setSelected((prev) => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
   };
 
   const toggleSelectAll = () => {
@@ -139,9 +149,9 @@ export default function HistoryPage() {
     sortKey !== key ? "<>" : sortDir === "asc" ? "^" : "v";
 
   const statusColor = (status: string) => {
-    if (status === "Completed") return "bg-green-100 text-green-800";
-    if (status === "Running") return "bg-blue-100 text-blue-800";
-    return "bg-yellow-100 text-yellow-800";
+    if (status === "Completed") return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+    if (status === "Running") return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+    return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
   };
 
   const columns: { key: keyof StoredJob; label: string }[] = [
@@ -157,20 +167,32 @@ export default function HistoryPage() {
     { key: "carbonOptimized", label: "Optimized CO2" },
   ];
 
+  const runningCount = jobs.filter((j) => j.status === "Running").length;
+  const queuedCount = jobs.filter((j) => j.status === "Queued").length;
+
   return (
     <div className="max-w-[95rem] mx-auto px-6 py-10 space-y-4">
       <h1 className="text-3xl font-bold">Job History</h1>
+
+      {/* Live cluster status bar */}
+      <div className="flex gap-4 text-sm">
+        <span className="px-2 py-1 rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 font-medium">
+          {runningCount} / 3 running
+        </span>
+        {queuedCount > 0 && (
+          <span className="px-2 py-1 rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 font-medium">
+            {queuedCount} in queue
+          </span>
+        )}
+      </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <input
           type="text"
           value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setCurrentPage(1);
-          }}
-          placeholder="Search by ID, workload, flexibility, or status..."
-          className="w-full sm:w-80 px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
+          onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+          placeholder="Search by ID, name, flexibility, or status..."
+          className="w-full sm:w-72 px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
         />
         <div className="flex items-center gap-3">
           {selected.size > 0 && (
@@ -219,49 +241,28 @@ export default function HistoryPage() {
                 <td className="px-4 py-3 text-sm">{job.requestedCpus}</td>
                 <td className="px-4 py-3 text-sm">{job.runtimeHours}h</td>
                 <td className="px-4 py-3 text-sm">
-                  <Badge
-                    variant={
-                      job.flexibilityClass === "rigid"
-                        ? "destructive"
-                        : job.flexibilityClass === "semi-flexible"
-                          ? "secondary"
-                          : "default"
-                    }
-                  >
+                  <Badge variant={job.flexibilityClass === "rigid" ? "destructive" : job.flexibilityClass === "semi-flexible" ? "secondary" : "default"}>
                     {job.flexibilityClass}
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-sm">
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor(job.status)}`}>
                     {job.status}
+                    {job.status === "Queued" && job.queuePosition != null && (
+                      <span className="ml-1 opacity-70">#{job.queuePosition}</span>
+                    )}
                   </span>
+                  <CountdownCell job={job} />
                 </td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">
-                  {job.carbonBaseline.toFixed(0)}g
-                </td>
-                <td className="px-4 py-3 text-sm text-primary font-medium">
-                  {job.carbonOptimized.toFixed(0)}g
-                </td>
-                <td className="px-4 py-3 text-sm min-w-48">
-                  <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className={`h-full ${
-                        job.status === "Completed"
-                          ? "bg-green-500"
-                          : job.status === "Running"
-                            ? "bg-blue-500"
-                            : "bg-yellow-500"
-                      }`}
-                      style={{ width: `${job.progressPercent}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {job.status === "Completed"
-                      ? "Finished"
-                      : job.status === "Queued" && job.queueAheadCount > 0
-                        ? `${job.queueAheadCount} job(s) ahead`
-                        : `${job.progressPercent}% complete`}
-                  </p>
+                <td className="px-4 py-3 text-sm text-muted-foreground">{job.carbonBaseline}g</td>
+                <td className="px-4 py-3 text-sm text-primary font-medium">{job.carbonOptimized}g</td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => deleteJob(job.id)}
+                    className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
                 </td>
               </tr>
             ))}
