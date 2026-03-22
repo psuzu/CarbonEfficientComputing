@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 """
 cluster_state.py
 
@@ -14,15 +15,22 @@ ClusterState fields (matching an HPC dashboard):
     - jobs_running       : Number of jobs actively executing
     - jobs_queued        : Number of jobs waiting in the queue
 """
+=======
+"""Cluster resource snapshot helpers for Layer 1."""
+>>>>>>> Stashed changes
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+<<<<<<< Updated upstream
 from typing import Dict
+=======
+>>>>>>> Stashed changes
 
 
 @dataclass(frozen=True)
 class ClusterState:
+<<<<<<< Updated upstream
     """Immutable snapshot of HPC cluster resources and utilization."""
 
     # Capacity
@@ -36,10 +44,21 @@ class ClusterState:
     gpus_in_use: int = 0
 
     # Job counts
+=======
+    """Immutable snapshot of current cluster capacity and utilization."""
+
+    total_nodes: int = 20
+    total_processors: int = 640
+    total_gpus: int = 8
+    nodes_in_use: int = 0
+    processors_in_use: int = 0
+    gpus_in_use: int = 0
+>>>>>>> Stashed changes
     jobs_running: int = 0
     jobs_queued: int = 0
 
     def __post_init__(self) -> None:
+<<<<<<< Updated upstream
         """Validate types and value constraints."""
         # Capacity checks
         for field, value in [
@@ -72,6 +91,40 @@ class ClusterState:
                 raise ValueError(f"{field} must be a non-negative int, got {value}")
 
     # Computed properties
+=======
+        for field_name, value in (
+            ("total_nodes", self.total_nodes),
+            ("total_processors", self.total_processors),
+            ("total_gpus", self.total_gpus),
+        ):
+            if not isinstance(value, int) or value < 1:
+                raise ValueError(f"{field_name} must be a positive int, got {value}")
+
+        for field_name, value, capacity_name, capacity_value in (
+            ("nodes_in_use", self.nodes_in_use, "total_nodes", self.total_nodes),
+            (
+                "processors_in_use",
+                self.processors_in_use,
+                "total_processors",
+                self.total_processors,
+            ),
+            ("gpus_in_use", self.gpus_in_use, "total_gpus", self.total_gpus),
+        ):
+            if not isinstance(value, int) or value < 0:
+                raise ValueError(f"{field_name} must be a non-negative int, got {value}")
+            if value > capacity_value:
+                raise ValueError(
+                    f"{field_name} ({value}) cannot exceed {capacity_name} ({capacity_value})"
+                )
+
+        for field_name, value in (
+            ("jobs_running", self.jobs_running),
+            ("jobs_queued", self.jobs_queued),
+        ):
+            if not isinstance(value, int) or value < 0:
+                raise ValueError(f"{field_name} must be a non-negative int, got {value}")
+
+>>>>>>> Stashed changes
     @property
     def nodes_available(self) -> int:
         return self.total_nodes - self.nodes_in_use
@@ -86,16 +139,23 @@ class ClusterState:
 
     @property
     def node_utilization(self) -> float:
+<<<<<<< Updated upstream
         """Percentage of nodes in use (0.0 – 100.0)."""
+=======
+>>>>>>> Stashed changes
         return round(self.nodes_in_use / self.total_nodes * 100, 2)
 
     @property
     def processor_utilization(self) -> float:
+<<<<<<< Updated upstream
         """Percentage of processors in use (0.0 – 100.0)."""
+=======
+>>>>>>> Stashed changes
         return round(self.processors_in_use / self.total_processors * 100, 2)
 
     @property
     def gpu_utilization(self) -> float:
+<<<<<<< Updated upstream
         """Percentage of GPUs in use (0.0 – 100.0)."""
         return round(self.gpus_in_use / self.total_gpus * 100, 2)
 
@@ -103,6 +163,30 @@ class ClusterState:
     
     def to_dict(self) -> Dict[str, int]:
         """Convert to a plain dictionary."""
+=======
+        return round(self.gpus_in_use / self.total_gpus * 100, 2)
+
+    def can_allocate(
+        self,
+        requested_cpus: int,
+        requested_gpus: int = 0,
+        requested_nodes: int = 1,
+    ) -> bool:
+        if not isinstance(requested_cpus, int) or requested_cpus < 1:
+            raise ValueError(f"requested_cpus must be a positive int, got {requested_cpus}")
+        if not isinstance(requested_gpus, int) or requested_gpus < 0:
+            raise ValueError(f"requested_gpus must be a non-negative int, got {requested_gpus}")
+        if not isinstance(requested_nodes, int) or requested_nodes < 1:
+            raise ValueError(f"requested_nodes must be a positive int, got {requested_nodes}")
+
+        return (
+            requested_cpus <= self.processors_available
+            and requested_gpus <= self.gpus_available
+            and requested_nodes <= self.nodes_available
+        )
+
+    def to_dict(self) -> dict[str, int]:
+>>>>>>> Stashed changes
         return {
             "total_nodes": self.total_nodes,
             "nodes_in_use": self.nodes_in_use,
@@ -115,11 +199,15 @@ class ClusterState:
         }
 
     @classmethod
+<<<<<<< Updated upstream
     def from_dict(cls, data: dict) -> "ClusterState":
         """Construct a ClusterState from a dictionary.
 
         Strictly enforces types — no missing or malformed values allowed.
         """
+=======
+    def from_dict(cls, data: dict[str, object]) -> "ClusterState":
+>>>>>>> Stashed changes
         try:
             return cls(
                 total_nodes=int(data["total_nodes"]),
@@ -136,9 +224,13 @@ class ClusterState:
         except (TypeError, ValueError) as exc:
             raise ValueError(f"Invalid data in dict {data}: {exc}") from exc
 
+<<<<<<< Updated upstream
     # Display
     def summary(self) -> str:
         """Human-readable dashboard-style summary."""
+=======
+    def summary(self) -> str:
+>>>>>>> Stashed changes
         lines = [
             "HPC Cluster Status",
             "=" * 40,
@@ -155,11 +247,23 @@ class ClusterState:
         return "\n".join(lines)
 
 
+<<<<<<< Updated upstream
 # Factory
 def default_cluster() -> ClusterState:
     """Return a sensible MVP default cluster (20 nodes, 640 CPUs, 8 GPUs)."""
+=======
+def default_cluster() -> ClusterState:
+    """Return a sensible larger default simulation cluster."""
+
+>>>>>>> Stashed changes
     return ClusterState(
         total_nodes=40,
         total_processors=1280,
         total_gpus=32,
     )
+<<<<<<< Updated upstream
+=======
+
+
+__all__ = ["ClusterState", "default_cluster"]
+>>>>>>> Stashed changes
