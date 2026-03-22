@@ -4,15 +4,15 @@
 .venv/
 __pycache__/
 *.pyc
-
-# Pytest
-.pytest_cache/
-
-# Generated data
-jobs_input.csv
-__pycache__/
-*.pyc
 *.pyo
 *.pyd
 .Python
+
+# Pytest
 .pytest_cache/
+.coverage
+coverage.xml
+
+# Generated data
+jobs_input.csv
+data/jobs_input.csv

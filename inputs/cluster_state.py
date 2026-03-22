@@ -1,3 +1,149 @@
-"""Layer 1 wrapper around the root cluster-state implementation."""
+"""Cluster resource snapshot helpers for Layer 1."""
 
-from cluster_state import *  # noqa: F403
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class ClusterState:
+    """Immutable snapshot of current cluster capacity and utilization."""
+
+    total_nodes: int = 20
+    total_processors: int = 640
+    total_gpus: int = 8
+    nodes_in_use: int = 0
+    processors_in_use: int = 0
+    gpus_in_use: int = 0
+    jobs_running: int = 0
+    jobs_queued: int = 0
+
+    def __post_init__(self) -> None:
+        for field_name, value in (
+            ("total_nodes", self.total_nodes),
+            ("total_processors", self.total_processors),
+            ("total_gpus", self.total_gpus),
+        ):
+            if not isinstance(value, int) or value < 1:
+                raise ValueError(f"{field_name} must be a positive int, got {value}")
+
+        for field_name, value, capacity_name, capacity_value in (
+            ("nodes_in_use", self.nodes_in_use, "total_nodes", self.total_nodes),
+            ("processors_in_use", self.processors_in_use, "total_processors", self.total_processors),
+            ("gpus_in_use", self.gpus_in_use, "total_gpus", self.total_gpus),
+        ):
+            if not isinstance(value, int) or value < 0:
+                raise ValueError(f"{field_name} must be a non-negative int, got {value}")
+            if value > capacity_value:
+                raise ValueError(
+                    f"{field_name} ({value}) cannot exceed {capacity_name} ({capacity_value})"
+                )
+
+        for field_name, value in (
+            ("jobs_running", self.jobs_running),
+            ("jobs_queued", self.jobs_queued),
+        ):
+            if not isinstance(value, int) or value < 0:
+                raise ValueError(f"{field_name} must be a non-negative int, got {value}")
+
+    @property
+    def nodes_available(self) -> int:
+        return self.total_nodes - self.nodes_in_use
+
+    @property
+    def processors_available(self) -> int:
+        return self.total_processors - self.processors_in_use
+
+    @property
+    def gpus_available(self) -> int:
+        return self.total_gpus - self.gpus_in_use
+
+    @property
+    def node_utilization(self) -> float:
+        return round(self.nodes_in_use / self.total_nodes * 100, 2)
+
+    @property
+    def processor_utilization(self) -> float:
+        return round(self.processors_in_use / self.total_processors * 100, 2)
+
+    @property
+    def gpu_utilization(self) -> float:
+        return round(self.gpus_in_use / self.total_gpus * 100, 2)
+
+    def can_allocate(
+        self,
+        requested_cpus: int,
+        requested_gpus: int = 0,
+        requested_nodes: int = 1,
+    ) -> bool:
+        if not isinstance(requested_cpus, int) or requested_cpus < 1:
+            raise ValueError(f"requested_cpus must be a positive int, got {requested_cpus}")
+        if not isinstance(requested_gpus, int) or requested_gpus < 0:
+            raise ValueError(f"requested_gpus must be a non-negative int, got {requested_gpus}")
+        if not isinstance(requested_nodes, int) or requested_nodes < 1:
+            raise ValueError(f"requested_nodes must be a positive int, got {requested_nodes}")
+
+        return (
+            requested_cpus <= self.processors_available
+            and requested_gpus <= self.gpus_available
+            and requested_nodes <= self.nodes_available
+        )
+
+    def to_dict(self) -> dict[str, int]:
+        return {
+            "total_nodes": self.total_nodes,
+            "nodes_in_use": self.nodes_in_use,
+            "total_processors": self.total_processors,
+            "processors_in_use": self.processors_in_use,
+            "total_gpus": self.total_gpus,
+            "gpus_in_use": self.gpus_in_use,
+            "jobs_running": self.jobs_running,
+            "jobs_queued": self.jobs_queued,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, object]) -> "ClusterState":
+        try:
+            return cls(
+                total_nodes=int(data["total_nodes"]),
+                nodes_in_use=int(data["nodes_in_use"]),
+                total_processors=int(data["total_processors"]),
+                processors_in_use=int(data["processors_in_use"]),
+                total_gpus=int(data["total_gpus"]),
+                gpus_in_use=int(data["gpus_in_use"]),
+                jobs_running=int(data["jobs_running"]),
+                jobs_queued=int(data["jobs_queued"]),
+            )
+        except KeyError as exc:
+            raise ValueError(f"Missing required field: {exc}") from exc
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Invalid data in dict {data}: {exc}") from exc
+
+    def summary(self) -> str:
+        lines = [
+            "HPC Cluster Status",
+            "=" * 40,
+            f"  Nodes Available:      {self.nodes_available:>6}  "
+            f"({self.node_utilization:.2f}% in use)",
+            f"  Processors Available: {self.processors_available:>6}  "
+            f"({self.processor_utilization:.2f}% in use)",
+            f"  GPUs Available:       {self.gpus_available:>6}  "
+            f"({self.gpu_utilization:.2f}% in use)",
+            "-" * 40,
+            f"  Jobs Running: {self.jobs_running:>6}    "
+            f"Jobs Queued: {self.jobs_queued:>6}",
+        ]
+        return "\n".join(lines)
+
+
+def default_cluster() -> ClusterState:
+    """Return a sensible larger default simulation cluster."""
+
+    return ClusterState(
+        total_nodes=40,
+        total_processors=1280,
+        total_gpus=32,
+    )
+
+
+__all__ = ["ClusterState", "default_cluster"]
