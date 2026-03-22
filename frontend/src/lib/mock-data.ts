@@ -22,6 +22,7 @@ export type JobRecord = {
   carbonBaseline: number;
   carbonOptimized: number;
   scheduledStart: number;
+  delayHours?: number;
 };
 
 // Mock jobs matching generate_workload.py structure

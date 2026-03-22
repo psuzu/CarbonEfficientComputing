@@ -10,21 +10,21 @@ import { Leaf, Upload } from "lucide-react";
 
 export default function SubmitJobPage() {
   const router = useRouter();
-  const [form, setForm] = useState({
-    cpus: 16,
-    runtime: 4,
-    flexibility: "semi-flexible",
-  });
+  const [form, setForm] = useState({ cpus: 16, runtime: 4, flexibility: "semi-flexible" });
   const [fileName, setFileName] = useState<string | null>(null);
+  const [fileBytes, setFileBytes] = useState(0);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) setFileName(file.name);
+    if (file) { setFileName(file.name); setFileBytes(file.size); }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push(`/report?cpus=${form.cpus}&runtime=${form.runtime}&flex=${form.flexibility}`);
+    const now = new Date();
+    const submitHour = now.getHours();
+    const submitMinute = now.getMinutes();
+    router.push(`/report?cpus=${form.cpus}&runtime=${form.runtime}&flex=${form.flexibility}&submit_hour=${submitHour}&submit_minute=${submitMinute}&file_bytes=${fileBytes}`);
   };
 
   return (
@@ -32,7 +32,6 @@ export default function SubmitJobPage() {
       <h1 className="text-3xl font-bold">Submit a Job</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Form */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Job Configuration</CardTitle>
@@ -42,27 +41,19 @@ export default function SubmitJobPage() {
               <div>
                 <label className="block text-sm font-medium mb-1">Requested CPUs</label>
                 <input
-                  type="number"
-                  min={1}
-                  max={256}
-                  value={form.cpus}
+                  type="number" min={1} max={256} value={form.cpus}
                   onChange={(e) => setForm({ ...form, cpus: Number(e.target.value) })}
                   className="w-full px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium mb-1">Runtime (hours)</label>
                 <input
-                  type="number"
-                  min={1}
-                  max={48}
-                  value={form.runtime}
+                  type="number" min={1} max={48} value={form.runtime}
                   onChange={(e) => setForm({ ...form, runtime: Number(e.target.value) })}
                   className="w-full px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium mb-1">Flexibility Class</label>
                 <select
@@ -75,8 +66,6 @@ export default function SubmitJobPage() {
                   <option value="flexible">Flexible - up to 24hr delay</option>
                 </select>
               </div>
-
-              {/* Zip file upload */}
               <div>
                 <label className="block text-sm font-medium mb-1">Code (zip file)</label>
                 <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-md border-input hover:border-primary/50 cursor-pointer transition-colors bg-background">
@@ -84,15 +73,9 @@ export default function SubmitJobPage() {
                   <span className="text-sm text-muted-foreground">
                     {fileName ? fileName : "Click to upload .zip"}
                   </span>
-                  <input
-                    type="file"
-                    accept=".zip"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
+                  <input type="file" accept=".zip" onChange={handleFileChange} className="hidden" />
                 </label>
               </div>
-
               <Button type="submit" className="w-full" size="lg">
                 <Leaf className="size-4 mr-2" /> Submit Job
               </Button>
@@ -100,7 +83,6 @@ export default function SubmitJobPage() {
           </CardContent>
         </Card>
 
-        {/* Carbon Forecast Chart */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">48-Hour Carbon Intensity Forecast</CardTitle>
@@ -125,14 +107,7 @@ export default function SubmitJobPage() {
                     formatter={(value) => [`${value} gCO₂/kWh`, "Intensity"]}
                     labelFormatter={(h) => `Hour ${h}`}
                   />
-                  <Area
-                    type="monotone"
-                    dataKey="intensity"
-                    stroke="#ef4444"
-                    fill="url(#carbonGrad)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
+                  <Area type="monotone" dataKey="intensity" stroke="#ef4444" fill="url(#carbonGrad)" strokeWidth={2} dot={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>

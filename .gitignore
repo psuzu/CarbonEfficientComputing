@@ -10,3 +10,5 @@ __pycache__/
 
 # Generated data
 jobs_input.csv
+
+.env
