@@ -1,7 +1,6 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { formatSupabaseError, supabaseServer } from '@/lib/supabase-server';
-import { runPythonScript } from '@/lib/python';
-import path from 'node:path';
 
 type JobRow = {
   id: number;
@@ -30,6 +29,19 @@ type EstimatedMetrics = {
   optimizedEmissions: number;
   scheduledStart: number;
   delayHours: number;
+};
+
+const CURVE: number[] = [
+  420, 410, 395, 380, 370, 365, 370, 385, 400, 420, 430, 425,
+  410, 390, 360, 330, 300, 280, 265, 260, 270, 290, 320, 360,
+  400, 410, 395, 375, 360, 355, 360, 380, 400, 415, 425, 420,
+  405, 385, 355, 325, 295, 275, 260, 255, 265, 285, 315, 355,
+];
+
+const FLEXIBILITY_DELAY: Record<string, number> = {
+  rigid: 0,
+  'semi-flexible': 6,
+  flexible: 24,
 };
 
 function toTitleStatus(value: string | null | undefined) {
@@ -74,34 +86,44 @@ async function estimateJobMetrics(row: JobRow): Promise<EstimatedMetrics | null>
     return null
   }
 
-  try {
-    const repoRoot = path.resolve(process.cwd(), '..')
-    const raw = await runPythonScript(
-      repoRoot,
-      'estimator.py',
-      JSON.stringify({
-        cpus: requestedCpus,
-        runtime_hours: runtimeHours,
-        submit_hour: submitHour,
-        flexibility_class: flexibilityClass,
-      }),
-    )
+  const normalizedFlex = flexibilityClass.trim().toLowerCase()
+  const delay = FLEXIBILITY_DELAY[normalizedFlex] ?? 6
+  const hourIndex = Math.min(Math.max(Math.floor(submitHour), 0), 47)
+  const latest = Math.min(hourIndex + delay, 47)
+  const baselineEnd = Math.min(hourIndex + runtimeHours, 48)
+  const baselineSlice = CURVE.slice(hourIndex, baselineEnd)
 
-    const estimate = JSON.parse(raw) as {
-      baseline_emissions_gco2e: number
-      optimized_emissions_gco2e: number
-      scheduled_start_hour: number
-      delay_hours: number
-    }
-
-    return {
-      baselineEmissions: Number(estimate.baseline_emissions_gco2e ?? 0),
-      optimizedEmissions: Number(estimate.optimized_emissions_gco2e ?? 0),
-      scheduledStart: Number(estimate.scheduled_start_hour ?? submitHour),
-      delayHours: Number(estimate.delay_hours ?? 0),
-    }
-  } catch {
+  if (baselineSlice.length === 0) {
     return null
+  }
+
+  const baselineIntensity =
+    baselineSlice.reduce((sum, value) => sum + value, 0) / baselineSlice.length
+
+  let bestStart = hourIndex
+  let bestScore = baselineIntensity
+
+  for (let start = hourIndex; start <= latest; start += 1) {
+    const end = start + runtimeHours
+    if (end > 48) break
+
+    const slice = CURVE.slice(start, end)
+    if (slice.length !== runtimeHours) continue
+
+    const avg = slice.reduce((sum, value) => sum + value, 0) / runtimeHours
+    if (avg < bestScore) {
+      bestScore = avg
+      bestStart = start
+    }
+  }
+
+  const energyKwh = requestedCpus * 0.15 * runtimeHours
+
+  return {
+    baselineEmissions: Math.round(energyKwh * baselineIntensity * 10) / 10,
+    optimizedEmissions: Math.round(energyKwh * bestScore * 10) / 10,
+    scheduledStart: bestStart,
+    delayHours: bestStart - hourIndex,
   }
 }
 
@@ -166,7 +188,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const payload = {
+    const draftRow: JobRow = {
+      id: 0,
       job_id: Number(body.job_id ?? Math.floor(Math.random() * 10000)),
       submit_hour: Number(
         body.submit_hour ??
@@ -178,18 +201,34 @@ export async function POST(request: Request) {
       flexibility_class: String(body.flexibility_class ?? body.flexibilityClass ?? 'semi-flexible'),
       submitter_name: String(body.submitter_name ?? body.submitterName ?? 'Anonymous Researcher'),
       status: toDbStatus(body.status),
+      scheduled_start: body.scheduled_start ?? body.scheduledStart ?? null,
+      carbon_baseline: body.carbon_baseline ?? body.carbonBaseline ?? null,
+      carbon_optimized: body.carbon_optimized ?? body.carbonOptimized ?? null,
+      created_at: null,
+    };
+
+    const metrics = await estimateJobMetrics(draftRow);
+
+    const payload = {
+      job_id: draftRow.job_id,
+      submit_hour: draftRow.submit_hour,
+      requested_cpus: draftRow.requested_cpus,
+      runtime_hours: draftRow.runtime_hours,
+      flexibility_class: draftRow.flexibility_class,
+      submitter_name: draftRow.submitter_name,
+      status: draftRow.status,
       scheduled_start:
-        body.scheduled_start ?? body.scheduledStart ?? null,
+        body.scheduled_start ?? body.scheduledStart ?? metrics?.scheduledStart ?? null,
       carbon_baseline:
-        body.carbon_baseline ?? body.carbonBaseline ?? null,
+        body.carbon_baseline ?? body.carbonBaseline ?? metrics?.baselineEmissions ?? null,
       carbon_optimized:
-        body.carbon_optimized ?? body.carbonOptimized ?? null,
+        body.carbon_optimized ?? body.carbonOptimized ?? metrics?.optimizedEmissions ?? null,
     };
 
     const savedPayload = await insertJobWithFallback(payload)
-    const metrics = await estimateJobMetrics(savedPayload as JobRow)
+    const hydratedMetrics = await estimateJobMetrics(savedPayload as JobRow)
 
-    return NextResponse.json({ success: true, job: toFrontendJob(savedPayload as JobRow, metrics) }, { status: 201 });
+    return NextResponse.json({ success: true, job: toFrontendJob(savedPayload as JobRow, hydratedMetrics) }, { status: 201 });
   } catch (error: unknown) {
     const message = formatSupabaseError(error);
     console.error('Supabase POST Error:', message);
