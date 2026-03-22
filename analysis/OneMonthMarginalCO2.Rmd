@@ -1,0 +1,113 @@
+---
+title: "Marginal CO2 2/20-3/20"
+author: "Suzu Paudel"
+date: "2026-03-21"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(tidyr)
+library(zoo)
+
+data <- read.csv("../data/hourly_marginal_emissions.csv")
+
+data <- data %>%
+  mutate(
+    datetime = dmy_hm(datetime),
+    date = as.Date(datetime),
+    hour = hour(datetime)
+  )
+
+full_data <- data %>%
+  complete(date, hour = 0:23)
+
+missing_summary <- full_data %>%
+  group_by(date) %>%
+  summarise(missing_hours = sum(is.na(marginal_co2_rate))) %>%
+  filter(missing_hours > 0)
+
+print(missing_summary)
+
+clean_data <- full_data %>%
+  filter(!is.na(marginal_co2_rate))
+
+hourly_stats <- clean_data %>%
+  group_by(hour) %>%
+  summarise(
+    mean_co2 = mean(marginal_co2_rate, na.rm = TRUE),
+    median_co2 = median(marginal_co2_rate, na.rm = TRUE),
+    sd_co2 = sd(marginal_co2_rate, na.rm = TRUE),
+    count = n()
+  ) %>%
+  arrange(hour)
+
+print(hourly_stats)
+
+hourly_sorted <- hourly_stats %>%
+  arrange(median_co2)
+
+print(hourly_sorted)
+
+
+hour_counts <- clean_data %>%
+  group_by(hour) %>%
+  summarise(count = n())
+
+print(hour_counts)
+
+mean_median_plot <- ggplot(hourly_stats, aes(x = hour)) +
+  geom_line(aes(y = mean_co2, color = "Mean")) +
+  geom_point(aes(y = mean_co2, color = "Mean")) +
+  geom_line(aes(y = median_co2, color = "Median")) +
+  geom_point(aes(y = median_co2, color = "Median")) +
+  labs(
+    title = "Mean vs Median Carbon Intensity Over a Day",
+    x = "Hour of Day",
+    y = "CO2 Rate",
+    color = "Metric"
+  ) +
+  theme_minimal()
+
+ggplot(hourly_stats, aes(x = hour, y = mean_co2)) +
+  geom_line() +
+  geom_point() +
+  geom_errorbar(
+    aes(ymin = mean_co2 - sd_co2, ymax = mean_co2 + sd_co2),
+    width = 0.2
+  ) +
+  labs(
+    title = "Carbon Intensity with Variability",
+    x = "Hour of Day",
+    y = "CO2 Rate"
+  ) +
+  theme_minimal()
+
+ggplot(clean_data, aes(x = factor(hour), y = marginal_co2_rate)) +
+  geom_boxplot() +
+  labs(
+    title = "Distribution of Marginal CO2 by Hour",
+    x = "Hour",
+    y = "CO2 Rate"
+  ) +
+  theme_minimal()
+
+
+write.csv(hourly_stats, "../data/hourly_stats.csv", row.names = FALSE)
+write.csv(hourly_sorted, "../data/hourly_sorted_by_carbon_intensity.csv", row.names = FALSE)
+ggsave(
+  filename = "../outputs/plots/mean_vs_median_plot.png",
+  plot = mean_median_plot,
+  width = 8,
+  height = 5
+)
+
+
+```
