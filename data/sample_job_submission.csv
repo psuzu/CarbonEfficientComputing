@@ -1,4 +1,10 @@
 job_id,submit_hour,requested_cpus,requested_gpus,runtime_hours,flexibility_class,workload_class,source_archive,carbon_score
-2001,0,1,0,1,rigid,interactive,data/sample_jobs/cpu_burn_job.zip,
-2002,1,2,0,1,semi-flexible,dev-test,data/sample_jobs/matrix_multiply_job.zip,
-2003,2,4,0,1,flexible,batch,data/sample_jobs/parallel_batch_job.zip,
+2101,0,1,0,1,rigid,interactive,data/sample_jobs/cpu_burn_job_1.zip,
+2102,3,1,0,2,rigid,interactive,data/sample_jobs/cpu_burn_job_2.zip,
+2103,6,1,0,3,semi-flexible,interactive,data/sample_jobs/cpu_burn_job_3.zip,
+2201,1,2,0,1,semi-flexible,dev-test,data/sample_jobs/matrix_multiply_job_1.zip,
+2202,4,2,0,2,semi-flexible,dev-test,data/sample_jobs/matrix_multiply_job_2.zip,
+2203,8,2,0,3,flexible,dev-test,data/sample_jobs/matrix_multiply_job_3.zip,
+2301,2,4,0,1,flexible,batch,data/sample_jobs/parallel_batch_job_1.zip,
+2302,5,4,0,2,flexible,batch,data/sample_jobs/parallel_batch_job_2.zip,
+2303,9,4,0,3,flexible,batch,data/sample_jobs/parallel_batch_job_3.zip,

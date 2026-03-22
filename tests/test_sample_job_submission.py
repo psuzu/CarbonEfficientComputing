@@ -25,7 +25,7 @@ def test_sample_submission_rows_match_zip_manifests():
         reader = csv.DictReader(handle)
         rows = list(reader)
 
-    assert len(rows) == 3
+    assert len(rows) == 9
 
     for row in rows:
         zip_path = PROJECT_ROOT / row["source_archive"]

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { Activity, Clock, Leaf, TrendingDown } from "lucide-react";
 import {
   Area,
@@ -17,14 +18,39 @@ import {
 } from "recharts";
 import { ClientChart } from "@/components/client-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { carbonForecast, clusterState, clusterUtilization, mockJobs } from "@/lib/mock-data";
+import type { StoredJob } from "@/lib/job-store";
+import { carbonForecast, clusterState, clusterUtilization } from "@/lib/mock-data";
 
 export default function AnalyticsPage() {
-  const totalBaseline = mockJobs.reduce((sum, job) => sum + job.carbonBaseline, 0);
-  const totalOptimized = mockJobs.reduce((sum, job) => sum + job.carbonOptimized, 0);
-  const totalSaved = totalBaseline - totalOptimized;
+  const [jobs, setJobs] = useState<StoredJob[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadJobs = async () => {
+      const response = await fetch("/api/jobs", { cache: "no-store" });
+      const payload = (await response.json()) as { jobs?: StoredJob[] };
+      if (!cancelled && Array.isArray(payload.jobs)) {
+        setJobs(payload.jobs);
+      }
+    };
+
+    void loadJobs();
+    const interval = window.setInterval(() => {
+      void loadJobs();
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  const completedJobs = useMemo(() => jobs.filter((job) => job.status === "Completed"), [jobs]);
+  const totalBaseline = completedJobs.reduce((sum, job) => sum + job.carbonBaseline, 0);
+  const totalOptimized = completedJobs.reduce((sum, job) => sum + job.carbonOptimized, 0);
+  const totalSaved = completedJobs.reduce((sum, job) => sum + job.carbonSaved, 0);
   const avgReduction = totalBaseline === 0 ? 0 : Math.round((totalSaved / totalBaseline) * 100);
-  const completedJobs = mockJobs.filter((job) => job.status === "Completed");
   const avgDelay = completedJobs.length
     ? (
         completedJobs.reduce((sum, job) => sum + (job.scheduledStart - job.submitHour), 0) /
@@ -33,7 +59,7 @@ export default function AnalyticsPage() {
     : "0";
   const cpuUtil = Math.round((clusterState.processorsInUse / clusterState.totalProcessors) * 100);
 
-  const emissionsComparison = mockJobs.map((job) => ({
+  const emissionsComparison = completedJobs.map((job) => ({
     job: `Job ${job.id}`,
     baseline: job.carbonBaseline,
     optimized: job.carbonOptimized,
@@ -131,22 +157,8 @@ export default function AnalyticsPage() {
                     labelFormatter={(hour) => `Hour ${hour}`}
                   />
                   <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="cpuPercent"
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    dot={false}
-                    name="CPU"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="gpuPercent"
-                    stroke="#a855f7"
-                    strokeWidth={2}
-                    dot={false}
-                    name="GPU"
-                  />
+                  <Line type="monotone" dataKey="cpuPercent" stroke="#3b82f6" strokeWidth={2} dot={false} name="CPU" />
+                  <Line type="monotone" dataKey="gpuPercent" stroke="#a855f7" strokeWidth={2} dot={false} name="GPU" />
                 </LineChart>
               </ResponsiveContainer>
             </ClientChart>
@@ -166,20 +178,8 @@ export default function AnalyticsPage() {
                   <YAxis fontSize={12} tickFormatter={(value) => `${value}g`} />
                   <Tooltip formatter={(value) => [`${value}g CO2`]} />
                   <Legend />
-                  <Bar
-                    dataKey="baseline"
-                    fill="#ef4444"
-                    fillOpacity={0.7}
-                    name="Baseline"
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="optimized"
-                    fill="#22c55e"
-                    fillOpacity={0.7}
-                    name="Optimized"
-                    radius={[4, 4, 0, 0]}
-                  />
+                  <Bar dataKey="baseline" fill="#ef4444" fillOpacity={0.7} name="Baseline" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="optimized" fill="#22c55e" fillOpacity={0.7} name="Optimized" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ClientChart>

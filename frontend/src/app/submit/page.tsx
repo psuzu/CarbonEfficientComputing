@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Leaf, Upload } from "lucide-react";
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ClientChart } from "@/components/client-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,9 +21,11 @@ type AnalysisResult = {
 export default function SubmitJobPage() {
   const router = useRouter();
   const [form, setForm] = useState({
+    jobName: "Demo Job",
     cpus: 16,
     runtime: 4,
     flexibility: "semi-flexible",
+    latestStart: 12,
   });
   const [fileName, setFileName] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -45,6 +47,34 @@ export default function SubmitJobPage() {
           : []),
       ]
     : [];
+  const visibleForecast = carbonForecast.filter((point) => point.hour <= form.latestStart);
+  const intensities = visibleForecast.map((point) => point.intensity);
+  const sortedIntensities = [...intensities].sort((left, right) => left - right);
+  const greenThreshold =
+    sortedIntensities.length > 0
+      ? sortedIntensities[Math.max(0, Math.floor((sortedIntensities.length - 1) * 0.35))]
+      : 0;
+
+  let bestWindowStart = 0;
+  let bestWindowScore = Number.POSITIVE_INFINITY;
+  const candidateEnd = Math.max(0, form.latestStart - form.runtime + 1);
+  for (let startHour = 0; startHour <= candidateEnd; startHour += 1) {
+    const window = carbonForecast.slice(startHour, startHour + form.runtime);
+    if (window.length < form.runtime) {
+      continue;
+    }
+    const score = window.reduce((sum, point) => sum + point.intensity, 0);
+    if (score < bestWindowScore) {
+      bestWindowScore = score;
+      bestWindowStart = startHour;
+    }
+  }
+
+  const chartData = carbonForecast.map((point) => ({
+    ...point,
+    regularIntensity: point.intensity > greenThreshold ? point.intensity : null,
+    greenIntensity: point.intensity <= greenThreshold ? point.intensity : null,
+  }));
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -54,6 +84,13 @@ export default function SubmitJobPage() {
 
     setFile(selectedFile);
     setFileName(selectedFile.name);
+    setForm((current) => ({
+      ...current,
+      jobName:
+        current.jobName === "Demo Job" || current.jobName.trim() === ""
+          ? selectedFile.name.replace(/\.zip$/i, "")
+          : current.jobName,
+    }));
     setAnalyzing(true);
     setError(null);
 
@@ -98,9 +135,11 @@ export default function SubmitJobPage() {
 
       const formData = new FormData();
       formData.append("archive", file);
+      formData.append("jobName", form.jobName);
       formData.append("cpus", String(form.cpus));
       formData.append("runtimeHours", String(form.runtime));
       formData.append("flexibilityClass", form.flexibility);
+      formData.append("latestStartHour", String(form.latestStart));
 
       const response = await fetch("/api/estimate", {
         method: "POST",
@@ -125,6 +164,10 @@ export default function SubmitJobPage() {
         workloadClass: String(payload.workloadClass ?? ""),
         intensityLabel: String(payload.intensityLabel ?? ""),
         warnings: Array.isArray(payload.warnings) ? payload.warnings.join(" | ") : "",
+        jobId: String(payload.jobId ?? ""),
+        jobName: String(payload.jobName ?? form.jobName),
+        archiveName: String(payload.archiveName ?? file.name),
+        latestStartHour: String(payload.latest_start_hour ?? form.latestStart),
       });
       router.push(`/report?${params.toString()}`);
     } catch (submitError) {
@@ -145,6 +188,16 @@ export default function SubmitJobPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium mb-1">Job Name</label>
+                <input
+                  type="text"
+                  value={form.jobName}
+                  onChange={(event) => setForm({ ...form, jobName: event.target.value })}
+                  className="w-full px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">Requested CPUs</label>
                 <input
@@ -183,6 +236,35 @@ export default function SubmitJobPage() {
               </div>
 
               <div>
+                <label className="block text-sm font-medium mb-1">
+                  Must Start By Forecast Hour
+                </label>
+                <div className="space-y-2">
+                  <input
+                    type="range"
+                    min={0}
+                    max={47}
+                    value={form.latestStart}
+                    onChange={(event) => setForm({ ...form, latestStart: Number(event.target.value) })}
+                    className="w-full"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={47}
+                    value={form.latestStart}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        latestStart: Math.max(0, Math.min(47, Number(event.target.value) || 0)),
+                      })
+                    }
+                    className="w-full px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-1">Code (zip file)</label>
                 <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-md border-input hover:border-primary/50 cursor-pointer transition-colors bg-background">
                   <Upload className="size-5 text-muted-foreground mb-1" />
@@ -192,9 +274,7 @@ export default function SubmitJobPage() {
                   <input type="file" accept=".zip" onChange={handleFileChange} className="hidden" />
                 </label>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Sample uploads: <code>data/sample_jobs/cpu_burn_job.zip</code>,{" "}
-                  <code>data/sample_jobs/matrix_multiply_job.zip</code>,{" "}
-                  <code>data/sample_jobs/parallel_batch_job.zip</code>
+                  Sample uploads are listed in <code>data/sample_job_submission.csv</code>.
                 </p>
               </div>
 
@@ -231,18 +311,25 @@ export default function SubmitJobPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Lower values mean cleaner electricity. The scheduler will try to place your job in
-              greener windows.
+              Lower values mean cleaner electricity. The scheduler searches for the cleanest window
+              before hour {form.latestStart}. Values at or below {greenThreshold} gCO2/kWh are
+              treated as green.
             </p>
             <ClientChart className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={carbonForecast}>
+                <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="carbonGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
                       <stop offset="100%" stopColor="#22c55e" stopOpacity={0.1} />
                     </linearGradient>
                   </defs>
+                  <ReferenceArea
+                    x1={bestWindowStart}
+                    x2={bestWindowStart + Math.max(0, form.runtime - 1)}
+                    fill="#22c55e"
+                    fillOpacity={0.12}
+                  />
                   <XAxis dataKey="hour" fontSize={12} tickFormatter={(hour) => `${hour}h`} />
                   <YAxis fontSize={12} tickFormatter={(value) => `${value}`} />
                   <Tooltip
@@ -252,15 +339,27 @@ export default function SubmitJobPage() {
                   />
                   <Area
                     type="monotone"
-                    dataKey="intensity"
+                    dataKey="regularIntensity"
                     stroke="#ef4444"
                     fill="url(#carbonGrad)"
                     strokeWidth={2}
                     dot={false}
                   />
+                  <Area
+                    type="monotone"
+                    dataKey="greenIntensity"
+                    stroke="#22c55e"
+                    fill="none"
+                    strokeWidth={3}
+                    dot={false}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </ClientChart>
+            <p className="text-xs text-muted-foreground mt-3">
+              Green window formula: an hour is marked green when its carbon intensity is at or
+              below the 35th percentile of all intensities available before your chosen deadline.
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -13,6 +13,9 @@ function ReportContent() {
   const params = useSearchParams();
   const cpus = Number(params.get("cpus") || 16);
   const runtime = Number(params.get("runtime") || 4);
+  const jobId = Number(params.get("jobId") || 0);
+  const jobName = params.get("jobName") || "Unnamed Job";
+  const archiveName = params.get("archiveName") || "unknown.zip";
   const flex = params.get("flex") || "semi-flexible";
   const submittedCpus = Number(params.get("submittedCpus") || cpus);
   const submittedRuntime = Number(params.get("submittedRuntime") || runtime);
@@ -28,6 +31,7 @@ function ReportContent() {
   const reduction = baselineCo2 === 0 ? 0 : Math.round((saved / baselineCo2) * 100);
   const delay = Number(params.get("delay") || 0);
   const scheduledStart = Number(params.get("scheduledStart") || 0);
+  const latestStartHour = Number(params.get("latestStartHour") || scheduledStart);
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
@@ -39,6 +43,9 @@ function ReportContent() {
       </Link>
 
       <h1 className="text-3xl font-bold">Scheduling Report</h1>
+      <p className="text-sm text-muted-foreground">
+        Job ID: {jobId} | Job Name: {jobName} | Zip File: {archiveName}
+      </p>
 
       <Card>
         <CardHeader>
@@ -124,7 +131,8 @@ function ReportContent() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="size-4" />
             <span>
-              Job delayed by {delay} hours and scheduled to start at forecast hour {scheduledStart}
+              Job delayed by {delay} hours, scheduled to start at forecast hour {scheduledStart},
+              and must start by hour {latestStartHour}
             </span>
           </div>
         </CardContent>

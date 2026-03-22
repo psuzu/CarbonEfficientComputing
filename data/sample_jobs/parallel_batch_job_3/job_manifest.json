@@ -1,0 +1,1 @@
+{"job_id":2303,"submit_hour":9,"requested_cpus":4,"requested_gpus":0,"runtime_hours":3,"flexibility_class":"flexible","workload_class":"batch","source_archive":"data/sample_jobs/parallel_batch_job_3.zip"}

@@ -1,26 +1,50 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { mockJobs, type JobRecord } from "@/lib/mock-data";
+import type { StoredJob } from "@/lib/job-store";
 
 export default function HistoryPage() {
+  const [jobs, setJobs] = useState<StoredJob[]>([]);
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<keyof JobRecord>("id");
+  const [sortKey, setSortKey] = useState<keyof StoredJob>("id");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadJobs = async () => {
+      const response = await fetch("/api/jobs", { cache: "no-store" });
+      const payload = (await response.json()) as { jobs?: StoredJob[] };
+      if (!cancelled && Array.isArray(payload.jobs)) {
+        setJobs(payload.jobs);
+      }
+    };
+
+    void loadJobs();
+    const interval = window.setInterval(() => {
+      void loadJobs();
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
   const filtered = useMemo(() => {
-    if (!search) return mockJobs;
+    if (!search) return jobs;
     const term = search.toLowerCase();
-    return mockJobs.filter(
+    return jobs.filter(
       (job) =>
         job.id.toString().includes(term) ||
         job.flexibilityClass.toLowerCase().includes(term) ||
-        job.status.toLowerCase().includes(term)
+        job.status.toLowerCase().includes(term) ||
+        job.workloadClass.toLowerCase().includes(term),
     );
-  }, [search]);
+  }, [jobs, search]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((left, right) => {
@@ -33,7 +57,7 @@ export default function HistoryPage() {
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const paginated = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const handleSort = (key: keyof JobRecord) => {
+  const handleSort = (key: keyof StoredJob) => {
     if (sortKey === key) {
       setSortDir(sortDir === "asc" ? "desc" : "asc");
     } else {
@@ -42,21 +66,19 @@ export default function HistoryPage() {
     }
   };
 
-  const indicator = (key: keyof JobRecord) =>
+  const indicator = (key: keyof StoredJob) =>
     sortKey !== key ? "<>" : sortDir === "asc" ? "^" : "v";
 
   const statusColor = (status: string) => {
-    if (status === "Completed") {
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-    }
-    if (status === "Running") {
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
-    }
-    return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
+    if (status === "Completed") return "bg-green-100 text-green-800";
+    if (status === "Running") return "bg-blue-100 text-blue-800";
+    return "bg-yellow-100 text-yellow-800";
   };
 
-  const columns: { key: keyof JobRecord; label: string }[] = [
+  const columns: { key: keyof StoredJob; label: string }[] = [
     { key: "id", label: "Job ID" },
+    { key: "jobName", label: "Job Name" },
+    { key: "archiveName", label: "Zip File" },
     { key: "submitHour", label: "Submit Hour" },
     { key: "requestedCpus", label: "CPUs" },
     { key: "runtimeHours", label: "Runtime" },
@@ -78,8 +100,8 @@ export default function HistoryPage() {
             setSearch(event.target.value);
             setCurrentPage(1);
           }}
-          placeholder="Search by ID, flexibility, or status..."
-          className="w-full sm:w-72 px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
+          placeholder="Search by ID, workload, flexibility, or status..."
+          className="w-full sm:w-80 px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
         />
         <p className="text-sm text-muted-foreground">
           {paginated.length} of {filtered.length} jobs
@@ -99,12 +121,17 @@ export default function HistoryPage() {
                   {column.label} <span className="text-xs">{indicator(column.key)}</span>
                 </th>
               ))}
+              <th className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
+                Progress
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {paginated.map((job) => (
               <tr key={job.id} className="hover:bg-muted/50 transition-colors">
                 <td className="px-4 py-3 text-sm font-medium">{job.id}</td>
+                <td className="px-4 py-3 text-sm">{job.jobName}</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">{job.archiveName}</td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">Hour {job.submitHour}</td>
                 <td className="px-4 py-3 text-sm">{job.requestedCpus}</td>
                 <td className="px-4 py-3 text-sm">{job.runtimeHours}h</td>
@@ -122,15 +149,36 @@ export default function HistoryPage() {
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-sm">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor(job.status)}`}
-                  >
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor(job.status)}`}>
                     {job.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">{job.carbonBaseline}g</td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">
+                  {job.carbonBaseline.toFixed(0)}g
+                </td>
                 <td className="px-4 py-3 text-sm text-primary font-medium">
-                  {job.carbonOptimized}g
+                  {job.carbonOptimized.toFixed(0)}g
+                </td>
+                <td className="px-4 py-3 text-sm min-w-48">
+                  <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={`h-full ${
+                        job.status === "Completed"
+                          ? "bg-green-500"
+                          : job.status === "Running"
+                            ? "bg-blue-500"
+                            : "bg-yellow-500"
+                      }`}
+                      style={{ width: `${job.progressPercent}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {job.status === "Completed"
+                      ? "Finished"
+                      : job.status === "Queued" && job.queueAheadCount > 0
+                        ? `${job.queueAheadCount} job(s) ahead`
+                        : `${job.progressPercent}% complete`}
+                  </p>
                 </td>
               </tr>
             ))}
