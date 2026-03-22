@@ -3,6 +3,8 @@
 # Python
 .venv/
 __pycache__/
+.ruff_cache/
+.mypy_cache/
 *.pyc
 *.pyo
 *.pyd
@@ -10,8 +12,15 @@ __pycache__/
 
 # Pytest
 .pytest_cache/
+.pytest_tmp/
 .coverage
 coverage.xml
+
+# Notebooks / analysis exports
+analysis/*.html
+
+# Generated plots
+outputs/plots/
 
 # Generated data
 jobs_input.csv

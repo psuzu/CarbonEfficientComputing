@@ -230,6 +230,10 @@ def main() -> None:
     print("Round-trip validation passed.")
 
 
+if __name__ == "__main__":
+    main()
+
+
 __all__ = [
     "CSV_COLUMNS",
     "DEFAULT_JOBS_PATH",
