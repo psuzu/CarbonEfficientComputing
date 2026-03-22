@@ -1,0 +1,1 @@
+{"job_id":2201,"submit_hour":1,"requested_cpus":2,"requested_gpus":0,"runtime_hours":1,"flexibility_class":"semi-flexible","workload_class":"dev-test","source_archive":"data/sample_jobs/matrix_multiply_job_1.zip"}

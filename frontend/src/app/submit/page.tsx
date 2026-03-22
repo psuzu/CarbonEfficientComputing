@@ -94,10 +94,14 @@ export default function SubmitJobPage() {
     },
     []
   );
-  
-  // 1. Added the submitterName state here
+
   const [submitterName, setSubmitterName] = useState("");
-  const [form, setForm] = useState({ cpus: 16, runtime: 4, flexibility: "semi-flexible" });
+  const [form, setForm] = useState({
+    cpus: 16,
+    runtime: 4,
+    flexibility: "semi-flexible",
+    complexity: "HIGH",
+  });
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [archive, setArchive] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -118,6 +122,7 @@ export default function SubmitJobPage() {
       requested_cpus: form.cpus,
       runtime_hours: form.runtime,
       flexibility_class: form.flexibility,
+      complexity_class: form.complexity,
       submit_hour: now.getHours(),
       workload_class: "generic",
       source_archive: archive?.name ?? null,
@@ -168,14 +173,14 @@ export default function SubmitJobPage() {
     }
 
     try {
-      const response = await fetch('/api/jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      const response = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
-        router.push('/history');
+        router.push("/history");
         return;
       }
 
@@ -198,12 +203,10 @@ export default function SubmitJobPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
-              
-              {/* 3. Added the Researcher Name input box right at the top of the form */}
               <div>
                 <label className="block text-sm font-medium mb-1">Researcher Name</label>
                 <input
-                  type="text" 
+                  type="text"
                   placeholder="e.g., Jane Doe or mst3k"
                   value={submitterName}
                   onChange={(e) => setSubmitterName(e.target.value)}
@@ -213,23 +216,41 @@ export default function SubmitJobPage() {
               </div>
 
               <div>
+                <label className="block text-sm font-medium mb-1">Complexity Class</label>
+                <select
+                  value={form.complexity}
+                  onChange={(event) => setForm({ ...form, complexity: event.target.value })}
+                  className="w-full px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="HIGH">High Complexity - use carbon-aware scheduling lane</option>
+                  <option value="LOW">Low Complexity - run immediately in FIFO background lane</option>
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-1">Requested CPUs</label>
                 <input
-                  type="number" min={1} max={256} value={form.cpus}
+                  type="number"
+                  min={1}
+                  max={256}
+                  value={form.cpus}
                   onChange={(e) => setForm({ ...form, cpus: Number(e.target.value) })}
                   className="w-full px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-1">Runtime (hours)</label>
                 <input
-                  type="number" min={1} max={48} value={form.runtime}
+                  type="number"
+                  min={1}
+                  max={48}
+                  value={form.runtime}
                   onChange={(e) => setForm({ ...form, runtime: Number(e.target.value) })}
                   className="w-full px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-1">Flexibility Class</label>
                 <select
@@ -242,7 +263,7 @@ export default function SubmitJobPage() {
                   <option value="flexible">Flexible - up to 24hr delay</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-1">Code (zip file)</label>
                 <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-md border-input hover:border-primary/50 cursor-pointer transition-colors bg-background">
@@ -258,7 +279,7 @@ export default function SubmitJobPage() {
                   <code>data/sample_jobs/parallel_batch_job.zip</code>
                 </p>
               </div>
-              
+
               {submissionError ? (
                 <p className="text-sm text-destructive">{submissionError}</p>
               ) : null}
@@ -276,8 +297,8 @@ export default function SubmitJobPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Lower values mean cleaner electricity. The scheduler will try to place your job in
-              greener windows.
+              Lower values mean cleaner electricity. High-complexity jobs will try to land in
+              greener windows whenever capacity is available.
             </p>
             <p className="text-xs text-emerald-400/90 mb-3">
               Highlighted windows indicate forecast hours below {lowCarbonThreshold} gCO2e/kWh.

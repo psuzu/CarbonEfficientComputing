@@ -18,7 +18,7 @@ export type JobRecord = {
   requestedCpus: number;
   runtimeHours: number;
   flexibilityClass: FlexibilityClass;
-  status: "Completed" | "Running" | "Queued";
+  status: "Completed" | "Running" | "Scheduled" | "Queued";
   carbonBaseline: number;
   carbonOptimized: number;
   scheduledStart: number;
