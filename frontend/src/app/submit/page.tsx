@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { carbonForecast } from "@/lib/mock-data";
-import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 import { Leaf, Upload } from "lucide-react";
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ClientChart } from "@/components/client-chart";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { carbonForecast } from "@/lib/mock-data";
 
 export default function SubmitJobPage() {
   const router = useRouter();
@@ -17,13 +18,15 @@ export default function SubmitJobPage() {
   });
   const [fileName, setFileName] = useState<string | null>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) setFileName(file.name);
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setFileName(file.name);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
     router.push(`/report?cpus=${form.cpus}&runtime=${form.runtime}&flex=${form.flexibility}`);
   };
 
@@ -32,7 +35,6 @@ export default function SubmitJobPage() {
       <h1 className="text-3xl font-bold">Submit a Job</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Form */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Job Configuration</CardTitle>
@@ -46,7 +48,7 @@ export default function SubmitJobPage() {
                   min={1}
                   max={256}
                   value={form.cpus}
-                  onChange={(e) => setForm({ ...form, cpus: Number(e.target.value) })}
+                  onChange={(event) => setForm({ ...form, cpus: Number(event.target.value) })}
                   className="w-full px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
@@ -58,7 +60,7 @@ export default function SubmitJobPage() {
                   min={1}
                   max={48}
                   value={form.runtime}
-                  onChange={(e) => setForm({ ...form, runtime: Number(e.target.value) })}
+                  onChange={(event) => setForm({ ...form, runtime: Number(event.target.value) })}
                   className="w-full px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
@@ -67,7 +69,7 @@ export default function SubmitJobPage() {
                 <label className="block text-sm font-medium mb-1">Flexibility Class</label>
                 <select
                   value={form.flexibility}
-                  onChange={(e) => setForm({ ...form, flexibility: e.target.value })}
+                  onChange={(event) => setForm({ ...form, flexibility: event.target.value })}
                   className="w-full px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="rigid">Rigid - must run now</option>
@@ -76,20 +78,14 @@ export default function SubmitJobPage() {
                 </select>
               </div>
 
-              {/* Zip file upload */}
               <div>
                 <label className="block text-sm font-medium mb-1">Code (zip file)</label>
                 <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-md border-input hover:border-primary/50 cursor-pointer transition-colors bg-background">
                   <Upload className="size-5 text-muted-foreground mb-1" />
                   <span className="text-sm text-muted-foreground">
-                    {fileName ? fileName : "Click to upload .zip"}
+                    {fileName ?? "Click to upload .zip"}
                   </span>
-                  <input
-                    type="file"
-                    accept=".zip"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
+                  <input type="file" accept=".zip" onChange={handleFileChange} className="hidden" />
                 </label>
               </div>
 
@@ -100,16 +96,16 @@ export default function SubmitJobPage() {
           </CardContent>
         </Card>
 
-        {/* Carbon Forecast Chart */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">48-Hour Carbon Intensity Forecast</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Lower values = cleaner electricity. The scheduler will try to place your job in green windows.
+              Lower values mean cleaner electricity. The scheduler will try to place your job in
+              greener windows.
             </p>
-            <div className="h-64">
+            <ClientChart className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={carbonForecast}>
                   <defs>
@@ -118,12 +114,12 @@ export default function SubmitJobPage() {
                       <stop offset="100%" stopColor="#22c55e" stopOpacity={0.1} />
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="hour" fontSize={12} tickFormatter={(h) => `${h}h`} />
-                  <YAxis fontSize={12} tickFormatter={(v) => `${v}`} />
+                  <XAxis dataKey="hour" fontSize={12} tickFormatter={(hour) => `${hour}h`} />
+                  <YAxis fontSize={12} tickFormatter={(value) => `${value}`} />
                   <Tooltip
                     contentStyle={{ borderRadius: "0.5rem", fontSize: "0.875rem" }}
-                    formatter={(value) => [`${value} gCO₂/kWh`, "Intensity"]}
-                    labelFormatter={(h) => `Hour ${h}`}
+                    formatter={(value) => [`${value} gCO2/kWh`, "Intensity"]}
+                    labelFormatter={(hour) => `Hour ${hour}`}
                   />
                   <Area
                     type="monotone"
@@ -135,7 +131,7 @@ export default function SubmitJobPage() {
                   />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
+            </ClientChart>
           </CardContent>
         </Card>
       </div>

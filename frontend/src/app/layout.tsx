@@ -17,12 +17,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen flex flex-col bg-background text-foreground">
         <nav className="border-b border-border px-6 py-3 flex items-center justify-between">
           <Link href="/" className="text-lg font-bold text-primary flex items-center gap-2">
-            🌿 CarbonEfficient
+            CarbonEfficient
           </Link>
           <div className="flex items-center gap-4 text-sm">
-            <Link href="/submit" className="hover:text-primary transition-colors">Submit Job</Link>
-            <Link href="/history" className="hover:text-primary transition-colors">History</Link>
-            <Link href="/analytics" className="hover:text-primary transition-colors">Analytics</Link>
+            <Link href="/submit" className="hover:text-primary transition-colors">
+              Submit Job
+            </Link>
+            <Link href="/history" className="hover:text-primary transition-colors">
+              History
+            </Link>
+            <Link href="/analytics" className="hover:text-primary transition-colors">
+              Analytics
+            </Link>
           </div>
         </nav>
         <main className="flex-1">{children}</main>

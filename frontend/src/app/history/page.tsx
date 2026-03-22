@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { mockJobs, type JobRecord } from "@/lib/mock-data";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { mockJobs, type JobRecord } from "@/lib/mock-data";
 
 export default function HistoryPage() {
   const [search, setSearch] = useState("");
@@ -15,17 +15,17 @@ export default function HistoryPage() {
     if (!search) return mockJobs;
     const term = search.toLowerCase();
     return mockJobs.filter(
-      (j) =>
-        j.id.toString().includes(term) ||
-        j.flexibilityClass.toLowerCase().includes(term) ||
-        j.status.toLowerCase().includes(term)
+      (job) =>
+        job.id.toString().includes(term) ||
+        job.flexibilityClass.toLowerCase().includes(term) ||
+        job.status.toLowerCase().includes(term)
     );
   }, [search]);
 
   const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      if (a[sortKey] < b[sortKey]) return sortDir === "asc" ? -1 : 1;
-      if (a[sortKey] > b[sortKey]) return sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((left, right) => {
+      if (left[sortKey] < right[sortKey]) return sortDir === "asc" ? -1 : 1;
+      if (left[sortKey] > right[sortKey]) return sortDir === "asc" ? 1 : -1;
       return 0;
     });
   }, [filtered, sortKey, sortDir]);
@@ -43,11 +43,15 @@ export default function HistoryPage() {
   };
 
   const indicator = (key: keyof JobRecord) =>
-    sortKey !== key ? "⇅" : sortDir === "asc" ? "↑" : "↓";
+    sortKey !== key ? "<>" : sortDir === "asc" ? "^" : "v";
 
-  const statusColor = (s: string) => {
-    if (s === "Completed") return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-    if (s === "Running") return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+  const statusColor = (status: string) => {
+    if (status === "Completed") {
+      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+    }
+    if (status === "Running") {
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+    }
     return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
   };
 
@@ -58,8 +62,8 @@ export default function HistoryPage() {
     { key: "runtimeHours", label: "Runtime" },
     { key: "flexibilityClass", label: "Flexibility" },
     { key: "status", label: "Status" },
-    { key: "carbonBaseline", label: "Baseline CO₂" },
-    { key: "carbonOptimized", label: "Optimized CO₂" },
+    { key: "carbonBaseline", label: "Baseline CO2" },
+    { key: "carbonOptimized", label: "Optimized CO2" },
   ];
 
   return (
@@ -70,7 +74,10 @@ export default function HistoryPage() {
         <input
           type="text"
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setCurrentPage(1);
+          }}
           placeholder="Search by ID, flexibility, or status..."
           className="w-full sm:w-72 px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
         />
@@ -83,13 +90,13 @@ export default function HistoryPage() {
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-muted">
             <tr>
-              {columns.map((col) => (
+              {columns.map((column) => (
                 <th
-                  key={col.key}
-                  onClick={() => handleSort(col.key)}
+                  key={column.key}
+                  onClick={() => handleSort(column.key)}
                   className="px-4 py-3 text-left text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground"
                 >
-                  {col.label} <span className="text-xs">{indicator(col.key)}</span>
+                  {column.label} <span className="text-xs">{indicator(column.key)}</span>
                 </th>
               ))}
             </tr>
@@ -102,47 +109,58 @@ export default function HistoryPage() {
                 <td className="px-4 py-3 text-sm">{job.requestedCpus}</td>
                 <td className="px-4 py-3 text-sm">{job.runtimeHours}h</td>
                 <td className="px-4 py-3 text-sm">
-                  <Badge variant={job.flexibilityClass === "rigid" ? "destructive" : job.flexibilityClass === "semi-flexible" ? "secondary" : "default"}>
+                  <Badge
+                    variant={
+                      job.flexibilityClass === "rigid"
+                        ? "destructive"
+                        : job.flexibilityClass === "semi-flexible"
+                          ? "secondary"
+                          : "default"
+                    }
+                  >
                     {job.flexibilityClass}
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-sm">
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor(job.status)}`}>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-semibold ${statusColor(job.status)}`}
+                  >
                     {job.status}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">{job.carbonBaseline}g</td>
-                <td className="px-4 py-3 text-sm text-primary font-medium">{job.carbonOptimized}g</td>
+                <td className="px-4 py-3 text-sm text-primary font-medium">
+                  {job.carbonOptimized}g
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {/* Pagination */}
       <div className="flex justify-center items-center gap-2">
         <button
-          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+          onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
           disabled={currentPage === 1}
           className="px-3 py-1 bg-primary text-primary-foreground rounded text-sm disabled:opacity-50"
         >
           Prev
         </button>
-        {Array.from({ length: totalPages }, (_, i) => (
+        {Array.from({ length: totalPages }, (_, index) => (
           <button
-            key={i + 1}
-            onClick={() => setCurrentPage(i + 1)}
+            key={index + 1}
+            onClick={() => setCurrentPage(index + 1)}
             className={`px-3 py-1 rounded text-sm ${
-              currentPage === i + 1
+              currentPage === index + 1
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted border border-border text-muted-foreground"
             }`}
           >
-            {i + 1}
+            {index + 1}
           </button>
         ))}
         <button
-          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+          onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
           disabled={currentPage === totalPages}
           className="px-3 py-1 bg-primary text-primary-foreground rounded text-sm disabled:opacity-50"
         >
