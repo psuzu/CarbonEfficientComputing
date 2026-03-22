@@ -16,137 +16,52 @@ import {
 } from "recharts";
 import { ClientChart } from "@/components/client-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { type JobRecord } from "@/lib/jobs";
-
-type SubmissionPoint = {
-  label: string;
-  jobs: number;
-  saved: number;
-};
-
-type StatusPoint = {
-  status: string;
-  jobs: number;
-};
-
-type EmissionsPoint = {
-  job: string;
-  baseline: number;
-  optimized: number;
-};
-
-function formatBucketLabel(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-  });
-}
+import type { StoredJob } from "@/lib/job-store";
+import { carbonForecast, clusterState, clusterUtilization } from "@/lib/mock-data";
 
 export default function AnalyticsPage() {
-  const [jobs, setJobs] = useState<JobRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [jobs, setJobs] = useState<StoredJob[]>([]);
 
   useEffect(() => {
-    let active = true;
+    let cancelled = false;
 
-    fetch("/api/jobs")
-      .then(async (response) => {
-        const payload = await response.json();
+    const loadJobs = async () => {
+      const response = await fetch("/api/jobs", { cache: "no-store" });
+      const payload = (await response.json()) as { jobs?: StoredJob[] };
+      if (!cancelled && Array.isArray(payload.jobs)) {
+        setJobs(payload.jobs);
+      }
+    };
 
-        if (!response.ok) {
-          throw new Error(payload.error ?? "Failed to load analytics.");
-        }
-
-        if (active) {
-          setJobs(Array.isArray(payload) ? payload : []);
-          setError(null);
-        }
-      })
-      .catch((fetchError: unknown) => {
-        if (active) {
-          setError(fetchError instanceof Error ? fetchError.message : "Failed to load analytics.");
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setLoading(false);
-        }
-      });
+    void loadJobs();
+    const interval = window.setInterval(() => {
+      void loadJobs();
+    }, 3000);
 
     return () => {
-      active = false;
+      cancelled = true;
+      window.clearInterval(interval);
     };
   }, []);
 
-  const analytics = useMemo(() => {
-    const totalBaseline = jobs.reduce((sum, job) => sum + job.carbonBaseline, 0);
-    const totalOptimized = jobs.reduce((sum, job) => sum + job.carbonOptimized, 0);
-    const totalSaved = totalBaseline - totalOptimized;
-    const avgReduction = totalBaseline === 0 ? 0 : Math.round((totalSaved / totalBaseline) * 100);
-    const delayedJobs = jobs.filter((job) => (job.delayHours ?? Math.max(job.scheduledStart - job.submitHour, 0)) > 0);
-    const avgDelay = delayedJobs.length
-      ? (
-          delayedJobs.reduce(
-            (sum, job) => sum + (job.delayHours ?? Math.max(job.scheduledStart - job.submitHour, 0)),
-            0,
-          ) / delayedJobs.length
-        ).toFixed(1)
-      : "0.0";
-    const activeJobs = jobs.filter((job) => job.status !== "Completed").length;
+  const completedJobs = useMemo(() => jobs.filter((job) => job.status === "Completed"), [jobs]);
+  const totalBaseline = completedJobs.reduce((sum, job) => sum + job.carbonBaseline, 0);
+  const totalOptimized = completedJobs.reduce((sum, job) => sum + job.carbonOptimized, 0);
+  const totalSaved = completedJobs.reduce((sum, job) => sum + job.carbonSaved, 0);
+  const avgReduction = totalBaseline === 0 ? 0 : Math.round((totalSaved / totalBaseline) * 100);
+  const avgDelay = completedJobs.length
+    ? (
+        completedJobs.reduce((sum, job) => sum + (job.scheduledStart - job.submitHour), 0) /
+        completedJobs.length
+      ).toFixed(1)
+    : "0";
+  const cpuUtil = Math.round((clusterState.processorsInUse / clusterState.totalProcessors) * 100);
 
-    const submissionBuckets = new Map<string, SubmissionPoint>();
-    jobs
-      .filter((job) => job.createdAt)
-      .sort((left, right) => new Date(left.createdAt ?? 0).getTime() - new Date(right.createdAt ?? 0).getTime())
-      .forEach((job) => {
-        const bucketKey = new Date(job.createdAt as string);
-        bucketKey.setMinutes(0, 0, 0);
-        const key = bucketKey.toISOString();
-        const bucket = submissionBuckets.get(key) ?? { label: key, jobs: 0, saved: 0 };
-        bucket.jobs += 1;
-        bucket.saved += job.carbonBaseline - job.carbonOptimized;
-        submissionBuckets.set(key, bucket);
-      });
-
-    const submissions = Array.from(submissionBuckets.values()).slice(-12);
-
-    const statuses: Array<JobRecord["status"]> = ["Queued", "Running", "Completed"];
-    const statusBreakdown: StatusPoint[] = statuses.map((status) => ({
-      status,
-      jobs: jobs.filter((job) => job.status === status).length,
-    }));
-
-    const emissionsComparison: EmissionsPoint[] = [...jobs]
-      .sort((left, right) => {
-        const leftTime = left.createdAt ? new Date(left.createdAt).getTime() : left.id;
-        const rightTime = right.createdAt ? new Date(right.createdAt).getTime() : right.id;
-        return rightTime - leftTime;
-      })
-      .slice(0, 12)
-      .reverse()
-      .map((job) => ({
-        job: `Job ${job.id}`,
-        baseline: Number(job.carbonBaseline.toFixed(1)),
-        optimized: Number(job.carbonOptimized.toFixed(1)),
-      }));
-
-    return {
-      totalSaved,
-      avgReduction,
-      avgDelay,
-      activeJobs,
-      submissions,
-      statusBreakdown,
-      emissionsComparison,
-    };
-  }, [jobs]);
+  const emissionsComparison = completedJobs.map((job) => ({
+    job: `Job ${job.id}`,
+    baseline: job.carbonBaseline,
+    optimized: job.carbonOptimized,
+  }));
 
   const metrics = [
     {
@@ -272,11 +187,16 @@ export default function AnalyticsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={analytics.statusBreakdown}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
-                  <XAxis dataKey="status" fontSize={12} />
-                  <YAxis fontSize={12} allowDecimals={false} />
-                  <Tooltip formatter={(value) => [value, "Jobs"]} />
-                  <Bar dataKey="jobs" fill="#0f766e" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                  <XAxis dataKey="hour" fontSize={12} tickFormatter={(hour) => `${hour}h`} />
+                  <YAxis fontSize={12} domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
+                  <Tooltip
+                    formatter={(value) => [`${value}%`]}
+                    labelFormatter={(hour) => `Hour ${hour}`}
+                  />
+                  <Legend />
+                  <Line type="monotone" dataKey="cpuPercent" stroke="#3b82f6" strokeWidth={2} dot={false} name="CPU" />
+                  <Line type="monotone" dataKey="gpuPercent" stroke="#a855f7" strokeWidth={2} dot={false} name="GPU" />
+                </LineChart>
               </ResponsiveContainer>
             </ClientChart>
             <p className="mt-3 text-sm text-muted-foreground">
@@ -298,20 +218,8 @@ export default function AnalyticsPage() {
                   <YAxis fontSize={12} tickFormatter={(value) => `${value}g`} />
                   <Tooltip formatter={(value) => [`${value}g CO2`]} />
                   <Legend />
-                  <Bar
-                    dataKey="baseline"
-                    fill="#ef4444"
-                    fillOpacity={0.7}
-                    name="Baseline"
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="optimized"
-                    fill="#22c55e"
-                    fillOpacity={0.7}
-                    name="Optimized"
-                    radius={[4, 4, 0, 0]}
-                  />
+                  <Bar dataKey="baseline" fill="#ef4444" fillOpacity={0.7} name="Baseline" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="optimized" fill="#22c55e" fillOpacity={0.7} name="Optimized" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ClientChart>

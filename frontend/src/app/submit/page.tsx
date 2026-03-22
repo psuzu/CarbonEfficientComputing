@@ -3,17 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Leaf, Upload } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Line,
-  ReferenceArea,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Area, AreaChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ClientChart } from "@/components/client-chart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,147 +20,160 @@ type AnalysisResult = {
 
 export default function SubmitJobPage() {
   const router = useRouter();
-  const lowCarbonThreshold = 100;
-  const chartAxisTextStyle = {
-    fill: "var(--foreground)",
-    fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif",
-    fontSize: 13,
-    fontWeight: 600,
-  } as const;
-  const carbonChartData = carbonForecast.reduce<
-    Array<{
-      hour: number;
-      intensity: number;
-      aboveThreshold: number | null;
-      belowThreshold: number | null;
-    }>
-  >((points, point, index) => {
-    const decoratePoint = (hour: number, intensity: number) => ({
-      hour,
-      intensity,
-      aboveThreshold: intensity >= lowCarbonThreshold ? intensity : null,
-      belowThreshold: intensity <= lowCarbonThreshold ? intensity : null,
-    });
-
-    if (index === 0) {
-      points.push(decoratePoint(point.hour, point.intensity));
-      return points;
-    }
-
-    const previousPoint = carbonForecast[index - 1];
-    const crossedThreshold =
-      (previousPoint.intensity - lowCarbonThreshold) * (point.intensity - lowCarbonThreshold) < 0;
-
-    if (crossedThreshold) {
-      const crossingHour =
-        previousPoint.hour +
-        ((lowCarbonThreshold - previousPoint.intensity) * (point.hour - previousPoint.hour)) /
-          (point.intensity - previousPoint.intensity);
-
-      points.push(decoratePoint(Number(crossingHour.toFixed(2)), lowCarbonThreshold));
-    }
-
-    points.push(decoratePoint(point.hour, point.intensity));
-    return points;
-  }, []);
-  const lowCarbonWindows = carbonForecast.reduce<Array<{ startHour: number; endHour: number }>>(
-    (windows, point, index) => {
-      if (point.intensity >= lowCarbonThreshold) {
-        return windows;
-      }
-
-      const previousPoint = carbonForecast[index - 1];
-      const activeWindow = windows[windows.length - 1];
-
-      if (!previousPoint || previousPoint.intensity >= lowCarbonThreshold || !activeWindow) {
-        windows.push({ startHour: point.hour, endHour: point.hour });
-        return windows;
-      }
-
-      activeWindow.endHour = point.hour;
-      return windows;
-    },
-    []
-  );
-  
-  // 1. Added the submitterName state here
-  const [submitterName, setSubmitterName] = useState("");
-  const [form, setForm] = useState({ cpus: 16, runtime: 4, flexibility: "semi-flexible" });
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const [archive, setArchive] = useState<File | null>(null);
+  const [form, setForm] = useState({
+    jobName: "Demo Job",
+    cpus: 16,
+    runtime: 4,
+    flexibility: "semi-flexible",
+    latestStart: 12,
+  });
   const [fileName, setFileName] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const currentWarnings = analysis
+    ? [
+        ...(form.cpus < analysis.recommended_cpus
+          ? [
+              `Requested CPUs (${form.cpus}) may be too low for this job. Recommended minimum is ${analysis.recommended_cpus}.`,
+            ]
+          : []),
+        ...(form.runtime < analysis.estimated_runtime_hours
+          ? [
+              `Requested runtime (${form.runtime}h) may be too short. Estimated minimum runtime is ${analysis.estimated_runtime_hours}h.`,
+            ]
+          : []),
+      ]
+    : [];
+  const visibleForecast = carbonForecast.filter((point) => point.hour <= form.latestStart);
+  const intensities = visibleForecast.map((point) => point.intensity);
+  const sortedIntensities = [...intensities].sort((left, right) => left - right);
+  const greenThreshold =
+    sortedIntensities.length > 0
+      ? sortedIntensities[Math.max(0, Math.floor((sortedIntensities.length - 1) * 0.35))]
+      : 0;
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    setArchive(file);
-    setFileName(file?.name ?? null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmissionError(null);
-    const now = new Date();
-
-    let payload = {
-      submitter_name: submitterName || "Anonymous Researcher",
-      requested_cpus: form.cpus,
-      runtime_hours: form.runtime,
-      flexibility_class: form.flexibility,
-      submit_hour: now.getHours(),
-    };
-
-    if (archive) {
-      try {
-        const formData = new FormData();
-        formData.append("archive", archive);
-        formData.append("cpus", String(form.cpus));
-        formData.append("runtimeHours", String(form.runtime));
-
-        const analysisResponse = await fetch("/api/analyze-job", {
-          method: "POST",
-          body: formData,
-        });
-
-        const analysis = (await analysisResponse.json()) as AnalysisResult;
-        if (analysisResponse.ok && !analysis.error) {
-          payload = {
-            ...payload,
-            requested_cpus: Number(analysis.recommended_cpus ?? form.cpus),
-            runtime_hours: Number(analysis.estimated_runtime_hours ?? form.runtime),
-            submit_hour:
-              analysis.analysis_source === "manifest" && Number.isInteger(analysis.submit_hour)
-                ? Number(analysis.submit_hour)
-                : payload.submit_hour,
-            flexibility_class:
-              analysis.analysis_source === "manifest" && analysis.flexibility_class
-                ? analysis.flexibility_class
-                : payload.flexibility_class,
-          };
-        } else {
-          console.error("Job analysis failed; continuing with form values.", analysis.error);
-        }
-      } catch (error) {
-        console.error("Job analysis request failed; continuing with form values.", error);
-      }
+  let bestWindowStart = 0;
+  let bestWindowScore = Number.POSITIVE_INFINITY;
+  const candidateEnd = Math.max(0, form.latestStart - form.runtime + 1);
+  for (let startHour = 0; startHour <= candidateEnd; startHour += 1) {
+    const window = carbonForecast.slice(startHour, startHour + form.runtime);
+    if (window.length < form.runtime) {
+      continue;
     }
+    const score = window.reduce((sum, point) => sum + point.intensity, 0);
+    if (score < bestWindowScore) {
+      bestWindowScore = score;
+      bestWindowStart = startHour;
+    }
+  }
+
+  const chartData = carbonForecast.map((point) => ({
+    ...point,
+    regularIntensity: point.intensity > greenThreshold ? point.intensity : null,
+    greenIntensity: point.intensity <= greenThreshold ? point.intensity : null,
+  }));
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      return;
+    }
+
+    setFile(selectedFile);
+    setFileName(selectedFile.name);
+    setForm((current) => ({
+      ...current,
+      jobName:
+        current.jobName === "Demo Job" || current.jobName.trim() === ""
+          ? selectedFile.name.replace(/\.zip$/i, "")
+          : current.jobName,
+    }));
+    setAnalyzing(true);
+    setError(null);
 
     try {
-      const response = await fetch('/api/jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+      const formData = new FormData();
+      formData.append("archive", selectedFile);
+      formData.append("cpus", String(form.cpus));
+      formData.append("runtimeHours", String(form.runtime));
 
-      if (response.ok) {
-        router.push('/history');
-        return;
+      const response = await fetch("/api/analyze-job", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as AnalysisResult & { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Job analysis failed");
       }
 
-      const result = await response.json().catch(() => null);
-      setSubmissionError(result?.error || "Failed to submit job to Supabase.");
-    } catch (error) {
-      console.error("Failed to submit job to Supabase.", error);
-      setSubmissionError("Failed to submit job to Supabase.");
+      setAnalysis(payload);
+      setForm((current) => ({
+        ...current,
+        cpus: Math.max(current.cpus, payload.recommended_cpus),
+        runtime: Math.max(current.runtime, payload.estimated_runtime_hours),
+      }));
+    } catch (analysisError) {
+      setAnalysis(null);
+      setError(analysisError instanceof Error ? analysisError.message : "Job analysis failed");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      if (file === null) {
+        throw new Error("Upload a .zip job archive first");
+      }
+
+      const formData = new FormData();
+      formData.append("archive", file);
+      formData.append("jobName", form.jobName);
+      formData.append("cpus", String(form.cpus));
+      formData.append("runtimeHours", String(form.runtime));
+      formData.append("flexibilityClass", form.flexibility);
+      formData.append("latestStartHour", String(form.latestStart));
+
+      const response = await fetch("/api/estimate", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as Record<string, string | number | string[]>;
+      if (!response.ok) {
+        throw new Error(String(payload.error ?? "Job estimation failed"));
+      }
+
+      const params = new URLSearchParams({
+        cpus: String(payload.recommendedCpus ?? form.cpus),
+        runtime: String(payload.estimatedRuntimeHours ?? form.runtime),
+        flex: String(form.flexibility),
+        baseline: String(payload.baseline_emissions_gco2e),
+        optimized: String(payload.optimized_emissions_gco2e),
+        saved: String(payload.carbon_saved_gco2e),
+        scheduledStart: String(payload.scheduled_start_hour),
+        delay: String(payload.delay_hours),
+        submittedCpus: String(payload.submittedCpus ?? form.cpus),
+        submittedRuntime: String(payload.submittedRuntimeHours ?? form.runtime),
+        workloadClass: String(payload.workloadClass ?? ""),
+        intensityLabel: String(payload.intensityLabel ?? ""),
+        warnings: Array.isArray(payload.warnings) ? payload.warnings.join(" | ") : "",
+        jobId: String(payload.jobId ?? ""),
+        jobName: String(payload.jobName ?? form.jobName),
+        archiveName: String(payload.archiveName ?? file.name),
+        latestStartHour: String(payload.latest_start_hour ?? form.latestStart),
+      });
+      router.push(`/report?${params.toString()}`);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Job estimation failed");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -185,17 +188,13 @@ export default function SubmitJobPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
-              
-              {/* 3. Added the Researcher Name input box right at the top of the form */}
               <div>
-                <label className="block text-sm font-medium mb-1">Researcher Name</label>
+                <label className="block text-sm font-medium mb-1">Job Name</label>
                 <input
-                  type="text" 
-                  placeholder="e.g., Jane Doe or mst3k"
-                  value={submitterName}
-                  onChange={(e) => setSubmitterName(e.target.value)}
+                  type="text"
+                  value={form.jobName}
+                  onChange={(event) => setForm({ ...form, jobName: event.target.value })}
                   className="w-full px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
-                  required
                 />
               </div>
 
@@ -229,7 +228,36 @@ export default function SubmitJobPage() {
                   <option value="flexible">Flexible - up to 24hr delay</option>
                 </select>
               </div>
-              
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Must Start By Forecast Hour
+                </label>
+                <div className="space-y-2">
+                  <input
+                    type="range"
+                    min={0}
+                    max={47}
+                    value={form.latestStart}
+                    onChange={(event) => setForm({ ...form, latestStart: Number(event.target.value) })}
+                    className="w-full"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={47}
+                    value={form.latestStart}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        latestStart: Math.max(0, Math.min(47, Number(event.target.value) || 0)),
+                      })
+                    }
+                    className="w-full px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium mb-1">Code (zip file)</label>
                 <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-md border-input hover:border-primary/50 cursor-pointer transition-colors bg-background">
@@ -240,9 +268,7 @@ export default function SubmitJobPage() {
                   <input type="file" accept=".zip" onChange={handleFileChange} className="hidden" />
                 </label>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Sample uploads: <code>data/sample_jobs/cpu_burn_job.zip</code>,{" "}
-                  <code>data/sample_jobs/matrix_multiply_job.zip</code>,{" "}
-                  <code>data/sample_jobs/parallel_batch_job.zip</code>
+                  Sample uploads are listed in <code>data/sample_job_submission.csv</code>.
                 </p>
               </div>
               
@@ -263,59 +289,27 @@ export default function SubmitJobPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Lower values mean cleaner electricity. The scheduler will try to place your job in
-              greener windows.
-            </p>
-            <p className="text-xs text-emerald-400/90 mb-3">
-              Highlighted windows indicate forecast hours below {lowCarbonThreshold} gCO2e/kWh.
+              Lower values mean cleaner electricity. The scheduler searches for the cleanest window
+              before hour {form.latestStart}. Values at or below {greenThreshold} gCO2/kWh are
+              treated as green.
             </p>
             <ClientChart className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={carbonChartData} margin={{ top: 8, right: 12, bottom: 28, left: 28 }}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.18} />
-                  {lowCarbonWindows.map((window, index) => (
-                    <ReferenceArea
-                      key={`${window.startHour}-${window.endHour}-${index}`}
-                      x1={window.startHour}
-                      x2={window.endHour}
-                      y1={0}
-                      y2={lowCarbonThreshold}
-                      fill="#22c55e"
-                      fillOpacity={0.12}
-                      strokeOpacity={0}
-                    />
-                  ))}
-                  <XAxis
-                    type="number"
-                    dataKey="hour"
-                    domain={[0, 47]}
-                    ticks={[2, 5, 8, 11, 14, 18, 22, 26, 30, 34, 38, 42, 47]}
-                    fontSize={12}
-                    tick={{ fill: "var(--muted-foreground)", fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif" }}
-                    axisLine={{ stroke: "var(--border)" }}
-                    tickLine={{ stroke: "var(--border)" }}
-                    tickFormatter={(hour) => `${hour}h`}
-                    label={{
-                      value: "Forecast hour (next 48h)",
-                      position: "bottom",
-                      offset: 10,
-                      style: chartAxisTextStyle,
-                    }}
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="carbonGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#22c55e" stopOpacity={0.1} />
+                    </linearGradient>
+                  </defs>
+                  <ReferenceArea
+                    x1={bestWindowStart}
+                    x2={bestWindowStart + Math.max(0, form.runtime - 1)}
+                    fill="#22c55e"
+                    fillOpacity={0.12}
                   />
-                  <YAxis
-                    fontSize={12}
-                    tick={{ fill: "var(--muted-foreground)", fontFamily: "var(--font-geist-sans), Arial, Helvetica, sans-serif" }}
-                    axisLine={{ stroke: "var(--border)" }}
-                    tickLine={{ stroke: "var(--border)" }}
-                    tickFormatter={(value) => `${value}`}
-                    label={{
-                      value: "Grid carbon intensity (gCO2e/kWh)",
-                      angle: -90,
-                      position: "left",
-                      offset: 0,
-                      style: chartAxisTextStyle,
-                    }}
-                  />
+                  <XAxis dataKey="hour" fontSize={12} tickFormatter={(hour) => `${hour}h`} />
+                  <YAxis fontSize={12} tickFormatter={(value) => `${value}`} />
                   <Tooltip
                     contentStyle={{ borderRadius: "0.5rem", fontSize: "0.875rem" }}
                     formatter={(value) => [`${value} gCO2/kWh`, "Intensity"]}
@@ -323,15 +317,7 @@ export default function SubmitJobPage() {
                   />
                   <Area
                     type="monotone"
-                    dataKey="intensity"
-                    stroke="none"
-                    fill="#ef4444"
-                    fillOpacity={0.08}
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="aboveThreshold"
+                    dataKey="regularIntensity"
                     stroke="#ef4444"
                     strokeWidth={2}
                     dot={false}
@@ -343,11 +329,22 @@ export default function SubmitJobPage() {
                     stroke="#22c55e"
                     strokeWidth={2}
                     dot={false}
-                    connectNulls={false}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="greenIntensity"
+                    stroke="#22c55e"
+                    fill="none"
+                    strokeWidth={3}
+                    dot={false}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             </ClientChart>
+            <p className="text-xs text-muted-foreground mt-3">
+              Green window formula: an hour is marked green when its carbon intensity is at or
+              below the 35th percentile of all intensities available before your chosen deadline.
+            </p>
           </CardContent>
         </Card>
       </div>

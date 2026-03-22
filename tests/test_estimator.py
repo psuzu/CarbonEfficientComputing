@@ -77,3 +77,23 @@ def test_estimate_submission_picks_cleaner_window(monkeypatch: pytest.MonkeyPatc
     assert estimate["scheduled_start_hour"] == 4
     assert estimate["delay_hours"] == 4
     assert estimate["optimized_emissions_gco2e"] < estimate["baseline_emissions_gco2e"]
+
+
+def test_estimate_submission_respects_latest_start_override(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(
+        "estimator.load_grid_forecast",
+        lambda: [600.0, 550.0, 300.0, 200.0, 150.0, 100.0, 400.0, 450.0],
+    )
+
+    estimate = estimate_submission(
+        {
+            "cpus": 10,
+            "runtime_hours": 2,
+            "submit_hour": 0,
+            "flexibility_class": "flexible",
+            "latest_start_hour": 2,
+        }
+    )
+
+    assert estimate["latest_start_hour"] == 2
+    assert estimate["scheduled_start_hour"] == 2

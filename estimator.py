@@ -145,15 +145,16 @@ def estimate_submission(payload: dict[str, object]) -> dict[str, float | int | s
     runtime_hours = int(payload["runtime_hours"])
     submit_hour = int(payload["submit_hour"])
     flexibility_class = str(payload["flexibility_class"])
+    latest_start_hour_override = payload.get("latest_start_hour")
 
     forecast_values = load_grid_forecast()
     job = EstimateJob(requested_cpus=requested_cpus, runtime_hours=runtime_hours)
     baseline_emissions = calculate_job_emissions(job, submit_hour, forecast_values)
 
-    latest_start_hour = min(
-        submit_hour + _allowed_delay_hours(flexibility_class),
-        len(forecast_values) - runtime_hours,
-    )
+    latest_start_hour = submit_hour + _allowed_delay_hours(flexibility_class)
+    if latest_start_hour_override is not None:
+        latest_start_hour = min(latest_start_hour, int(latest_start_hour_override))
+    latest_start_hour = min(latest_start_hour, len(forecast_values) - runtime_hours)
     if latest_start_hour < submit_hour:
         raise ValueError(
             "runtime_hours exceeds the available forecast horizon for this submission"
@@ -172,6 +173,7 @@ def estimate_submission(payload: dict[str, object]) -> dict[str, float | int | s
         "runtime_hours": runtime_hours,
         "submit_hour": submit_hour,
         "flexibility_class": flexibility_class,
+        "latest_start_hour": latest_start_hour,
         "baseline_emissions_gco2e": round(baseline_emissions, 2),
         "optimized_emissions_gco2e": round(best_emissions, 2),
         "scheduled_start_hour": best_start_hour,
