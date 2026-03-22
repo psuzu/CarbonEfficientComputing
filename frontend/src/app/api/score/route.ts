@@ -14,31 +14,56 @@ const FLEXIBILITY_DELAY: Record<string, number> = {
   flexible: 24,
 };
 
+type ReservedWindow = { windowStart: number; windowEnd: number };
+
+function windowOverlaps(start: number, end: number, reserved: ReservedWindow[]) {
+  return reserved.some((w) => start < w.windowEnd && end > w.windowStart);
+}
+
 export async function POST(req: NextRequest) {
-  const { cpus, runtime, flexibility, submit_hour, submit_minute = 0, file_bytes = 0 } = await req.json();
+  const {
+    cpus,
+    runtime,
+    flexibility,
+    submit_hour,
+    submit_minute = 0,
+    file_bytes = 0,
+    reserved_windows = [],
+  } = await req.json();
+
   const flex = flexibility ?? "semi-flexible";
   const delay = FLEXIBILITY_DELAY[flex] ?? 6;
 
-  // fractional hour based on minutes (e.g. 10:45 → 10.75)
-  const fractionalHour = submit_hour + (submit_minute / 60);
+  const fractionalHour = submit_hour + submit_minute / 60;
   const hourIndex = Math.min(Math.floor(fractionalHour), 47);
-
   const latest = Math.min(hourIndex + delay, 47);
 
   const baselineEnd = Math.min(hourIndex + runtime, 48);
   const baselineSlice = CURVE.slice(hourIndex, baselineEnd);
-  const baselineIntensity = baselineSlice.reduce((a, b) => a + b, 0) / baselineSlice.length;
+  const baselineIntensity =
+    baselineSlice.reduce((a, b) => a + b, 0) / baselineSlice.length;
 
-  let bestStart = hourIndex;
+  // Find best non-reserved window
+  let bestStart = -1;
   let bestScore = Infinity;
   for (let start = hourIndex; start <= latest; start++) {
     const end = start + runtime;
     if (end > 48) break;
+    if (windowOverlaps(start, end, reserved_windows as ReservedWindow[])) continue;
     const avg = CURVE.slice(start, end).reduce((a, b) => a + b, 0) / runtime;
-    if (avg < bestScore) { bestScore = avg; bestStart = start; }
+    if (avg < bestScore) {
+      bestScore = avg;
+      bestStart = start;
+    }
   }
 
-  // file size adds a small I/O energy overhead (1 MB ≈ 0.001 kWh extra)
+  // If all windows in flexibility range are reserved, signal QUEUED
+  const allReserved = bestStart === -1;
+  if (allReserved) {
+    bestStart = hourIndex; // placeholder
+    bestScore = baselineIntensity;
+  }
+
   const fileOverheadKwh = (file_bytes / 1_000_000) * 0.001;
   const energyKwh = cpus * 0.15 * runtime + fileOverheadKwh;
 
@@ -51,5 +76,6 @@ export async function POST(req: NextRequest) {
     baseline_co2_g: Math.round(energyKwh * baselineIntensity * 10) / 10,
     optimized_co2_g: Math.round(energyKwh * bestScore * 10) / 10,
     delay_hours: bestStart - hourIndex,
+    all_windows_reserved: allReserved,
   });
 }

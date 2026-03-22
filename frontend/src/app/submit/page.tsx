@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Leaf, Upload } from "lucide-react";
 import {
@@ -99,6 +99,14 @@ export default function SubmitJobPage() {
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [archive, setArchive] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [reservedWindows, setReservedWindows] = useState<Array<{ windowStart: number; windowEnd: number }>>([]);
+
+  useEffect(() => {
+    fetch("/api/windows")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setReservedWindows(data); })
+      .catch(() => {});
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
@@ -268,7 +276,7 @@ export default function SubmitJobPage() {
                   <CartesianGrid strokeDasharray="3 3" opacity={0.18} />
                   {lowCarbonWindows.map((window, index) => (
                     <ReferenceArea
-                      key={`${window.startHour}-${window.endHour}-${index}`}
+                      key={`green-${window.startHour}-${window.endHour}-${index}`}
                       x1={window.startHour}
                       x2={window.endHour}
                       y1={0}
@@ -276,6 +284,18 @@ export default function SubmitJobPage() {
                       fill="#22c55e"
                       fillOpacity={0.12}
                       strokeOpacity={0}
+                    />
+                  ))}
+                  {reservedWindows.map((w, index) => (
+                    <ReferenceArea
+                      key={`reserved-${w.windowStart}-${w.windowEnd}-${index}`}
+                      x1={w.windowStart}
+                      x2={w.windowEnd}
+                      fill="#6b7280"
+                      fillOpacity={0.25}
+                      stroke="#6b7280"
+                      strokeOpacity={0.4}
+                      label={{ value: "reserved", position: "insideTop", fontSize: 10, fill: "#9ca3af" }}
                     />
                   ))}
                   <XAxis

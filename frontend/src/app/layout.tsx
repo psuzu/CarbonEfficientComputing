@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { JobTicker } from "@/components/job-ticker";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -31,7 +32,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
           </div>
         </nav>
-        <main className="flex-1">{children}</main>
+        <main className="flex-1">
+          <JobTicker />
+          {children}
+        </main>
       </body>
     </html>
   );
