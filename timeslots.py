@@ -1,10 +1,26 @@
 """Time-slot capacity helpers for Layer 2."""
 
 from __future__ import annotations
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 DEFAULT_HORIZON_HOURS = 48
 DEFAULT_CAPACITY_PER_HOUR = 1000
 
+@dataclass(frozen=True)
+class TimeSlot:
+    """Represents a single hour timeslot with capacity info."""
+    
+    hour_index: int
+    timestamp: datetime | None
+    available_cpus: int
+    
+    def to_dict(self) -> dict[str, int | str | None]:
+        return {
+            "hour_index": self.hour_index,
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
+            "available_cpus": self.available_cpus,
+        }
 
 def make_capacity_array(
     horizon_hours: int = DEFAULT_HORIZON_HOURS,
@@ -19,6 +35,63 @@ def make_capacity_array(
 
 capacity_array = make_capacity_array()
 
+def make_timeslot_array(
+    horizon_hours: int = DEFAULT_HORIZON_HOURS,
+    capacity: int = DEFAULT_CAPACITY_PER_HOUR,
+    start_time: datetime | None = None,
+) -> list[TimeSlot]:
+    """
+    Create an array of TimeSlot objects with timestamps and capacity.
+    
+    Args:
+        horizon_hours: Number of hours in the planning horizon
+        capacity: CPU capacity per hour
+        start_time: Optional starting timestamp (hour 0)
+    
+    Returns:
+        List of TimeSlot objects representing each hour
+    """
+    slots = []
+    for hour in range(horizon_hours):
+        timestamp = start_time + timedelta(hours=hour) if start_time else None
+        slots.append(
+            TimeSlot(
+                hour_index=hour,
+                timestamp=timestamp,
+                available_cpus=capacity,
+            )
+        )
+    return slots
+
+
+def get_timeslot_info(
+    capacity: list[int] | None = None,
+    start_time: datetime | None = None,
+) -> list[TimeSlot]:
+    """
+    Convert capacity array to TimeSlot objects with current state.
+    
+    Args:
+        capacity: Optional capacity array (uses global if None)
+        start_time: Optional starting timestamp for hour 0
+    
+    Returns:
+        List of TimeSlot objects reflecting current capacity state
+    """
+    target_capacity = _resolve_capacity(capacity)
+    slots = []
+    
+    for hour_index, available_cpus in enumerate(target_capacity):
+        timestamp = start_time + timedelta(hours=hour_index) if start_time else None
+        slots.append(
+            TimeSlot(
+                hour_index=hour_index,
+                timestamp=timestamp,
+                available_cpus=available_cpus,
+            )
+        )
+    
+    return slots
 
 def _resolve_capacity(capacity: list[int] | None) -> list[int]:
     return capacity_array if capacity is None else capacity
@@ -85,9 +158,12 @@ def reset_capacity(
 __all__ = [
     "DEFAULT_CAPACITY_PER_HOUR",
     "DEFAULT_HORIZON_HOURS",
+    "TimeSlot",
     "allocate",
     "capacity_array",
     "check_fit",
+    "get_timeslot_info",
     "make_capacity_array",
+    "make_timeslot_array",
     "reset_capacity",
 ]
