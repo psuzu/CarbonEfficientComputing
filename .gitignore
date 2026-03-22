@@ -3,12 +3,26 @@
 # Python
 .venv/
 __pycache__/
+.ruff_cache/
+.mypy_cache/
 *.pyc
+*.pyo
+*.pyd
+.Python
+.env
 
 # Pytest
 .pytest_cache/
+.pytest_tmp/
+.coverage
+coverage.xml
+
+# Notebooks / analysis exports
+analysis/*.html
+
+# Generated plots
+outputs/plots/
 
 # Generated data
 jobs_input.csv
-
-.env
+data/jobs_input.csv

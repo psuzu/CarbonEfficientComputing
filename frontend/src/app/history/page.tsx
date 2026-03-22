@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { type JobRecord } from "@/lib/mock-data";
+import { type JobRecord } from "@/lib/jobs";
 import { Badge } from "@/components/ui/badge";
 import { Trash2 } from "lucide-react";
+
+type SortableJobKey = Exclude<keyof JobRecord, "delayHours">;
 
 export default function HistoryPage() {
   const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<keyof JobRecord>("id");
+  const [sortKey, setSortKey] = useState<SortableJobKey>("id");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -26,15 +28,29 @@ export default function HistoryPage() {
     return jobs.filter(
       (j) =>
         j.id.toString().includes(term) ||
+        (j.submitterName ?? "").toLowerCase().includes(term) ||
         j.flexibilityClass.toLowerCase().includes(term) ||
         j.status.toLowerCase().includes(term)
     );
   }, [search, jobs]);
 
-  const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
-      if (a[sortKey] < b[sortKey]) return sortDir === "asc" ? -1 : 1;
-      if (a[sortKey] > b[sortKey]) return sortDir === "asc" ? 1 : -1;
+const sorted = useMemo(() => {
+    const safeArray = Array.isArray(filtered) ? filtered : [];
+    
+    return [...safeArray].sort((left, right) => {
+      const leftValue = left[sortKey];
+      const rightValue = right[sortKey];
+
+      // 1. If they are exactly the same, no need to sort
+      if (leftValue === rightValue) return 0;
+
+      // 2. Safely push any null/undefined values to the bottom
+      if (leftValue === null || leftValue === undefined) return 1;
+      if (rightValue === null || rightValue === undefined) return -1;
+
+      // 3. Normal sorting for actual values
+      if (leftValue < rightValue) return sortDir === "asc" ? -1 : 1;
+      if (leftValue > rightValue) return sortDir === "asc" ? 1 : -1;
       return 0;
     });
   }, [filtered, sortKey, sortDir]);
@@ -42,7 +58,7 @@ export default function HistoryPage() {
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const paginated = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
-  const handleSort = (key: keyof JobRecord) => {
+  const handleSort = (key: SortableJobKey) => {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
     else { setSortKey(key); setSortDir("asc"); }
   };
@@ -63,7 +79,11 @@ export default function HistoryPage() {
   const toggleSelect = (id: number) => {
     setSelected((prev) => {
       const s = new Set(prev);
-      s.has(id) ? s.delete(id) : s.add(id);
+      if (s.has(id)) {
+        s.delete(id);
+      } else {
+        s.add(id);
+      }
       return s;
     });
   };
@@ -77,24 +97,29 @@ export default function HistoryPage() {
     }
   };
 
-  const indicator = (key: keyof JobRecord) =>
-    sortKey !== key ? "⇅" : sortDir === "asc" ? "↑" : "↓";
+  const indicator = (key: SortableJobKey) =>
+    sortKey !== key ? "<>" : sortDir === "asc" ? "^" : "v";
 
-  const statusColor = (s: string) => {
-    if (s === "Completed") return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
-    if (s === "Running") return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+  const statusColor = (status: string) => {
+    if (status === "Completed") {
+      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+    }
+    if (status === "Running") {
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+    }
     return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300";
   };
 
-  const columns: { key: keyof JobRecord; label: string }[] = [
+  const columns: { key: SortableJobKey; label: string }[] = [
     { key: "id", label: "Job ID" },
+    { key: "submitterName", label: "Submitted By" },
     { key: "submitHour", label: "Submit Hour" },
     { key: "requestedCpus", label: "CPUs" },
     { key: "runtimeHours", label: "Runtime" },
     { key: "flexibilityClass", label: "Flexibility" },
     { key: "status", label: "Status" },
-    { key: "carbonBaseline", label: "Baseline CO₂" },
-    { key: "carbonOptimized", label: "Optimized CO₂" },
+    { key: "carbonBaseline", label: "Baseline CO2" },
+    { key: "carbonOptimized", label: "Optimized CO2" },
   ];
 
   return (
@@ -105,8 +130,11 @@ export default function HistoryPage() {
         <input
           type="text"
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-          placeholder="Search by ID, flexibility, or status..."
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setCurrentPage(1);
+          }}
+          placeholder="Search by ID, name, flexibility, or status..."
           className="w-full sm:w-72 px-3 py-2 border rounded-md bg-background border-input focus:outline-none focus:ring-2 focus:ring-ring"
         />
         <div className="flex items-center gap-3">
@@ -148,11 +176,20 @@ export default function HistoryPage() {
                   <input type="checkbox" checked={selected.has(job.id)} onChange={() => toggleSelect(job.id)} className="rounded" />
                 </td>
                 <td className="px-4 py-3 text-sm font-medium">{job.id}</td>
+                <td className="px-4 py-3 text-sm">{job.submitterName ?? "Anonymous Researcher"}</td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">Hour {job.submitHour}</td>
                 <td className="px-4 py-3 text-sm">{job.requestedCpus}</td>
                 <td className="px-4 py-3 text-sm">{job.runtimeHours}h</td>
                 <td className="px-4 py-3 text-sm">
-                  <Badge variant={job.flexibilityClass === "rigid" ? "destructive" : job.flexibilityClass === "semi-flexible" ? "secondary" : "default"}>
+                  <Badge
+                    variant={
+                      job.flexibilityClass === "rigid"
+                        ? "destructive"
+                        : job.flexibilityClass === "semi-flexible"
+                          ? "secondary"
+                          : "default"
+                    }
+                  >
                     {job.flexibilityClass}
                   </Badge>
                 </td>

@@ -1,68 +1,63 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Cpu, Server, MonitorDot, Activity, Upload, Clock, BarChart3 } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { ClientChart } from "@/components/client-chart";
 import { Separator } from "@/components/ui/separator";
+import { clusterState } from "@/lib/mock-data";
 
 const utilizationData = [
-  { v: 30 }, { v: 45 }, { v: 52 }, { v: 48 }, { v: 60 }, { v: 55 }, { v: 62 }, { v: 58 }, { v: 65 },
+  { v: 30 },
+  { v: 45 },
+  { v: 52 },
+  { v: 48 },
+  { v: 60 },
+  { v: 55 },
+  { v: 62 },
+  { v: 58 },
+  { v: 65 },
 ];
 
-type ClusterState = {
-  totalNodes: number; nodesInUse: number;
-  totalProcessors: number; processorsInUse: number;
-  totalGpus: number; gpusInUse: number;
-  jobsRunning: number; jobsQueued: number;
+type ClusterMetric = {
+  title: string;
+  available: number;
+  total: number;
+  inUse: number;
+  icon: React.ReactNode;
+  color: string;
 };
 
-const DEFAULT: ClusterState = {
-  totalNodes: 40, nodesInUse: 0,
-  totalProcessors: 1280, processorsInUse: 0,
-  totalGpus: 32, gpusInUse: 0,
-  jobsRunning: 0, jobsQueued: 0,
-};
+const metrics: ClusterMetric[] = [
+  {
+    title: "Nodes",
+    available: clusterState.totalNodes - clusterState.nodesInUse,
+    total: clusterState.totalNodes,
+    inUse: clusterState.nodesInUse,
+    icon: <Server className="size-5" />,
+    color: "#22c55e",
+  },
+  {
+    title: "Processors",
+    available: clusterState.totalProcessors - clusterState.processorsInUse,
+    total: clusterState.totalProcessors,
+    inUse: clusterState.processorsInUse,
+    icon: <Cpu className="size-5" />,
+    color: "#3b82f6",
+  },
+  {
+    title: "GPUs",
+    available: clusterState.totalGpus - clusterState.gpusInUse,
+    total: clusterState.totalGpus,
+    inUse: clusterState.gpusInUse,
+    icon: <MonitorDot className="size-5" />,
+    color: "#a855f7",
+  },
+];
 
 export default function Home() {
-  const [cluster, setCluster] = useState<ClusterState>(DEFAULT);
-
-  useEffect(() => {
-    fetch("/api/cluster")
-      .then((r) => r.json())
-      .then(setCluster)
-      .catch(() => {});
-  }, []);
-
-  const metrics = [
-    {
-      title: "Nodes",
-      available: cluster.totalNodes - cluster.nodesInUse,
-      total: cluster.totalNodes,
-      inUse: cluster.nodesInUse,
-      icon: <Server className="size-5" />,
-      color: "#22c55e",
-    },
-    {
-      title: "Processors",
-      available: cluster.totalProcessors - cluster.processorsInUse,
-      total: cluster.totalProcessors,
-      inUse: cluster.processorsInUse,
-      icon: <Cpu className="size-5" />,
-      color: "#3b82f6",
-    },
-    {
-      title: "GPUs",
-      available: cluster.totalGpus - cluster.gpusInUse,
-      total: cluster.totalGpus,
-      inUse: cluster.gpusInUse,
-      icon: <MonitorDot className="size-5" />,
-      color: "#a855f7",
-    },
-  ];
-
   return (
     <div className="max-w-5xl mx-auto px-6 py-12 space-y-10">
       <div className="text-center space-y-4">
@@ -71,8 +66,14 @@ export default function Home() {
           Schedule HPC jobs during low-carbon periods. Reduce emissions without sacrificing performance.
         </p>
         <div className="flex gap-3 justify-center pt-2">
-          <Link href="/submit"><Button size="lg">Submit Job</Button></Link>
-          <Link href="/analytics"><Button variant="outline" size="lg">View Analytics</Button></Link>
+          <Link href="/submit">
+            <Button size="lg">Submit Job</Button>
+          </Link>
+          <Link href="/analytics">
+            <Button variant="outline" size="lg">
+              View Analytics
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -82,7 +83,7 @@ export default function Home() {
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Data centers account for 1-2% of global electricity use. By intelligently shifting
             flexible workloads to times when the grid is powered by renewables, we can cut HPC
-            carbon emissions by up to 40% - without slowing down research.
+            carbon emissions by up to 40% without slowing down research.
           </p>
         </CardContent>
       </Card>
@@ -94,21 +95,30 @@ export default function Home() {
             <CardContent className="pt-6 text-center space-y-2">
               <Upload className="size-8 mx-auto text-primary" />
               <h3 className="font-semibold">1. Submit Your Job</h3>
-              <p className="text-sm text-muted-foreground">Upload your code and specify resource requirements - CPUs, runtime, and how flexible your deadline is.</p>
+              <p className="text-sm text-muted-foreground">
+                Upload your code and specify resource requirements: CPUs, runtime, and how flexible
+                your deadline is.
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6 text-center space-y-2">
               <Clock className="size-8 mx-auto text-blue-500" />
               <h3 className="font-semibold">2. Find Green Windows</h3>
-              <p className="text-sm text-muted-foreground">The scheduler analyzes carbon intensity forecasts and finds the cleanest time slot within your flexibility window.</p>
+              <p className="text-sm text-muted-foreground">
+                The scheduler analyzes carbon intensity forecasts and finds the cleanest time slot
+                within your flexibility window.
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6 text-center space-y-2">
               <BarChart3 className="size-8 mx-auto text-purple-500" />
               <h3 className="font-semibold">3. Track Your Impact</h3>
-              <p className="text-sm text-muted-foreground">View detailed reports showing baseline vs optimized emissions and how much CO₂ your scheduling choices saved.</p>
+              <p className="text-sm text-muted-foreground">
+                View detailed reports showing baseline vs optimized emissions and how much CO2 your
+                scheduling choices saved.
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -130,34 +140,42 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {metrics.map((m) => {
-            const pct = Math.round((m.inUse / m.total) * 100);
+          {metrics.map((metric) => {
+            const pct = Math.round((metric.inUse / metric.total) * 100);
             return (
-              <Card key={m.title}>
+              <Card key={metric.title}>
                 <CardContent className="pt-6 space-y-4">
                   <div className="flex items-center gap-2">
-                    <span style={{ color: m.color }}>{m.icon}</span>
-                    <span className="font-semibold">{m.title}</span>
+                    <span style={{ color: metric.color }}>{metric.icon}</span>
+                    <span className="font-semibold">{metric.title}</span>
                   </div>
+
                   <div className="flex items-end justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">Available</p>
-                      <p className="text-3xl font-bold">{m.available.toLocaleString()}</p>
+                      <p className="text-3xl font-bold">{metric.available.toLocaleString()}</p>
                       <p className="text-sm text-muted-foreground">{pct}% in use</p>
                     </div>
-                    <div className="w-28 h-14">
+                    <ClientChart className="w-28 h-14">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={utilizationData}>
                           <defs>
-                            <linearGradient id={`grad-${m.title}`} x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor={m.color} stopOpacity={0.3} />
-                              <stop offset="100%" stopColor={m.color} stopOpacity={0.05} />
+                            <linearGradient id={`grad-${metric.title}`} x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor={metric.color} stopOpacity={0.3} />
+                              <stop offset="100%" stopColor={metric.color} stopOpacity={0.05} />
                             </linearGradient>
                           </defs>
-                          <Area type="monotone" dataKey="v" stroke={m.color} fill={`url(#grad-${m.title})`} strokeWidth={2} dot={false} />
+                          <Area
+                            type="monotone"
+                            dataKey="v"
+                            stroke={metric.color}
+                            fill={`url(#grad-${metric.title})`}
+                            strokeWidth={2}
+                            dot={false}
+                          />
                         </AreaChart>
                       </ResponsiveContainer>
-                    </div>
+                    </ClientChart>
                   </div>
                 </CardContent>
               </Card>
@@ -169,13 +187,13 @@ export default function Home() {
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-sm text-muted-foreground">Jobs Running</p>
-              <p className="text-3xl font-bold">{cluster.jobsRunning}</p>
+              <p className="text-3xl font-bold">{clusterState.jobsRunning}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-6 text-center">
               <p className="text-sm text-muted-foreground">Jobs Queued</p>
-              <p className="text-3xl font-bold">{cluster.jobsQueued}</p>
+              <p className="text-3xl font-bold">{clusterState.jobsQueued}</p>
             </CardContent>
           </Card>
         </div>

@@ -1,4 +1,4 @@
-// Cluster state values from cluster_state.py default_cluster()
+// Cluster state values derived from inputs.cluster_state.default_cluster().
 export const clusterState = {
   totalNodes: 40,
   nodesInUse: 24,
@@ -25,7 +25,11 @@ export type JobRecord = {
   delayHours?: number;
 };
 
-// Mock jobs matching generate_workload.py structure
+function deterministicOffset(index: number, amplitude: number, phase = 0): number {
+  return Math.round(Math.sin(index * 2.173 + phase) * amplitude);
+}
+
+// Mock jobs matching inputs.generate_workload.Job at a high level.
 export const mockJobs: JobRecord[] = [
   { id: 1, submitHour: 1, requestedCpus: 126, runtimeHours: 12, flexibilityClass: "semi-flexible", status: "Completed", carbonBaseline: 340.2, carbonOptimized: 245.8, scheduledStart: 4 },
   { id: 2, submitHour: 6, requestedCpus: 1, runtimeHours: 3, flexibilityClass: "rigid", status: "Completed", carbonBaseline: 12.5, carbonOptimized: 12.5, scheduledStart: 6 },
@@ -41,15 +45,20 @@ export const mockJobs: JobRecord[] = [
   { id: 12, submitHour: 14, requestedCpus: 89, runtimeHours: 36, flexibilityClass: "flexible", status: "Completed", carbonBaseline: 1280.4, carbonOptimized: 880.6, scheduledStart: 20 },
 ];
 
-// 48-hour carbon intensity forecast (gCO2/kWh)
+// 48-hour carbon intensity forecast (gCO2/kWh).
 export const carbonForecast = Array.from({ length: 48 }, (_, i) => ({
   hour: i,
-  intensity: Math.round(200 + 150 * Math.sin((i - 6) * Math.PI / 12) + (Math.random() - 0.5) * 40),
+  intensity:
+    200
+    + Math.round(150 * Math.sin((i - 6) * Math.PI / 12))
+    + deterministicOffset(i, 20, 0.4),
 }));
 
-// Cluster utilization over 24 hours for analytics charts
+// Cluster utilization over 24 hours for analytics charts.
 export const clusterUtilization = Array.from({ length: 24 }, (_, i) => ({
   hour: i,
-  cpuPercent: Math.round(40 + 30 * Math.sin((i - 8) * Math.PI / 12) + (Math.random() - 0.5) * 10),
-  gpuPercent: Math.round(35 + 35 * Math.sin((i - 10) * Math.PI / 12) + (Math.random() - 0.5) * 15),
+  cpuPercent:
+    40 + Math.round(30 * Math.sin((i - 8) * Math.PI / 12)) + deterministicOffset(i, 5, 0.2),
+  gpuPercent:
+    35 + Math.round(35 * Math.sin((i - 10) * Math.PI / 12)) + deterministicOffset(i, 7, 0.8),
 }));

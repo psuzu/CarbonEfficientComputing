@@ -1,13 +1,13 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, Clock, Leaf, Sparkles, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Leaf, Clock, Zap, Sparkles } from "lucide-react";
 
 type ScoreResult = {
   scheduled_start: number;
@@ -47,9 +47,10 @@ function ReportContent() {
   }, [cpus, runtime, flex, submitHour, submitMinute, fileBytes]);
 
   // Save to DB once result arrives
-  const [wasSaved, setWasSaved] = useState(false);
+  const wasSavedRef = useRef(false);
   useEffect(() => {
-    if (!result || wasSaved) return;
+    if (!result || wasSavedRef.current) return;
+    wasSavedRef.current = true;
     fetch("/api/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -84,8 +85,7 @@ function ReportContent() {
       .then((r) => r.json())
       .then((d) => { if (d.explanation) setAiExplanation(d.explanation); });
 
-    setWasSaved(true);
-  }, [result]);
+  }, [cpus, flex, result, runtime, submitHour]);
 
   if (!result && !error) {
     return <div className="p-10 text-center text-muted-foreground">Calculating optimal schedule...</div>;
@@ -98,10 +98,14 @@ function ReportContent() {
   const saved = baselineCo2 - optimizedCo2;
   const reduction = Math.round((saved / baselineCo2) * 100);
   const delay = result ? result.delay_hours : (flex === "rigid" ? 0 : flex === "semi-flexible" ? 3 : 8);
+  const scheduledStart = result ? result.scheduled_start : submitHour + delay;
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
-      <Link href="/submit" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        href="/submit"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
         <ArrowLeft className="size-4" /> Back to Submit
       </Link>
 
@@ -116,7 +120,7 @@ function ReportContent() {
         <CardContent className="space-y-3">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-sm text-muted-foreground">CPUs</p>
+              <p className="text-sm text-muted-foreground">Requested CPUs</p>
               <p className="text-2xl font-bold">{cpus}</p>
             </div>
             <div>
@@ -125,7 +129,11 @@ function ReportContent() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Flexibility</p>
-              <Badge variant={flex === "rigid" ? "destructive" : flex === "semi-flexible" ? "warning" : "success"}>
+              <Badge
+                variant={
+                  flex === "rigid" ? "destructive" : flex === "semi-flexible" ? "warning" : "success"
+                }
+              >
                 {flex}
               </Badge>
             </div>
@@ -157,7 +165,7 @@ function ReportContent() {
               <Leaf className="size-8 text-primary" />
               <div>
                 <p className="text-sm text-muted-foreground">Carbon Saved</p>
-                <p className="text-2xl font-bold text-primary">{saved.toLocaleString()} gCO₂</p>
+                <p className="text-2xl font-bold text-primary">{saved.toLocaleString()} gCO2</p>
               </div>
             </div>
             <div className="text-right">
@@ -168,7 +176,9 @@ function ReportContent() {
           <Separator className="my-4" />
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="size-4" />
-            <span>Job delayed by {delay} hours to a cleaner time window</span>
+            <span>
+              Job delayed by {delay} hours and scheduled to start at forecast hour {scheduledStart}
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -199,7 +209,9 @@ function ReportContent() {
 
 export default function ReportPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center text-muted-foreground">Loading report...</div>}>
+    <Suspense
+      fallback={<div className="p-10 text-center text-muted-foreground">Loading report...</div>}
+    >
       <ReportContent />
     </Suspense>
   );
