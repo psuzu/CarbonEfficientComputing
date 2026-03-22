@@ -1,0 +1,4 @@
+job_id,submit_hour,requested_cpus,requested_gpus,runtime_hours,flexibility_class,workload_class,source_archive,carbon_score
+2001,0,1,0,1,rigid,interactive,data/sample_jobs/cpu_burn_job.zip,
+2002,1,2,0,1,semi-flexible,dev-test,data/sample_jobs/matrix_multiply_job.zip,
+2003,2,4,0,1,flexible,batch,data/sample_jobs/parallel_batch_job.zip,

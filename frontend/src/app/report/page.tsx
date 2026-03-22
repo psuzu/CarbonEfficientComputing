@@ -14,16 +14,20 @@ function ReportContent() {
   const cpus = Number(params.get("cpus") || 16);
   const runtime = Number(params.get("runtime") || 4);
   const flex = params.get("flex") || "semi-flexible";
-
-  const powerPerCpu = 0.15;
-  const energyKwh = cpus * powerPerCpu * runtime;
-  const baselineIntensity = 320;
-  const optimizedIntensity = 185;
-  const baselineCo2 = Math.round(energyKwh * baselineIntensity);
-  const optimizedCo2 = Math.round(energyKwh * optimizedIntensity);
-  const saved = baselineCo2 - optimizedCo2;
+  const submittedCpus = Number(params.get("submittedCpus") || cpus);
+  const submittedRuntime = Number(params.get("submittedRuntime") || runtime);
+  const workloadClass = params.get("workloadClass") || "unknown";
+  const intensityLabel = params.get("intensityLabel") || "unknown";
+  const warnings = (params.get("warnings") || "")
+    .split(" | ")
+    .map((warning) => warning.trim())
+    .filter(Boolean);
+  const baselineCo2 = Number(params.get("baseline") || 0);
+  const optimizedCo2 = Number(params.get("optimized") || 0);
+  const saved = Number(params.get("saved") || Math.max(0, baselineCo2 - optimizedCo2));
   const reduction = baselineCo2 === 0 ? 0 : Math.round((saved / baselineCo2) * 100);
-  const delay = flex === "rigid" ? 0 : flex === "semi-flexible" ? 3 : 8;
+  const delay = Number(params.get("delay") || 0);
+  const scheduledStart = Number(params.get("scheduledStart") || 0);
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
@@ -43,14 +47,23 @@ function ReportContent() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground text-center">
+            Detected workload: <strong>{workloadClass}</strong> ({intensityLabel})
+          </p>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-sm text-muted-foreground">CPUs</p>
+              <p className="text-sm text-muted-foreground">Recommended CPUs</p>
               <p className="text-2xl font-bold">{cpus}</p>
+              {submittedCpus !== cpus ? (
+                <p className="text-xs text-amber-700">You entered {submittedCpus}</p>
+              ) : null}
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Runtime</p>
+              <p className="text-sm text-muted-foreground">Estimated Runtime</p>
               <p className="text-2xl font-bold">{runtime}h</p>
+              {submittedRuntime !== runtime ? (
+                <p className="text-xs text-amber-700">You entered {submittedRuntime}h</p>
+              ) : null}
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Flexibility</p>
@@ -63,6 +76,15 @@ function ReportContent() {
               </Badge>
             </div>
           </div>
+          {warnings.length > 0 ? (
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm space-y-1">
+              {warnings.map((warning) => (
+                <p key={warning} className="text-amber-800">
+                  {warning}
+                </p>
+              ))}
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -101,7 +123,9 @@ function ReportContent() {
           <Separator className="my-4" />
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Clock className="size-4" />
-            <span>Job delayed by {delay} hours to a cleaner time window</span>
+            <span>
+              Job delayed by {delay} hours and scheduled to start at forecast hour {scheduledStart}
+            </span>
           </div>
         </CardContent>
       </Card>
