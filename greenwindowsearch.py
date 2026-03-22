@@ -4,17 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 from dataclasses import dataclass
-
+from inputs.carbonsignal import load_carbon_signal_csv, signal_values
 # Import from carbon_signals (Layer 1)
-from carbon_signals import (
-    load_carbon_signal_csv,
-    signal_values,
-    DEFAULT_OUTPUT_PATH as CARBON_SIGNAL_PATH,
-)
-
 # Import from timespots (Layer 2)
-from timespots import check_fit, allocate, get_timeslot_info
-
+from modeling.timeslots import check_fit, allocate, make_capacity_array
 
 @dataclass(frozen=True)
 class GreenWindow:

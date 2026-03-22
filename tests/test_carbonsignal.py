@@ -36,6 +36,22 @@ def test_load_marginal_emissions_sorts_rows(tmp_path):
     assert samples[1][0] == datetime(2026, 2, 20, 3, 0)
 
 
+def test_load_marginal_emissions_handles_utf8_bom(tmp_path):
+    csv_path = tmp_path / "marginal_bom.csv"
+    csv_path.write_text(
+        "datetime,marginal_co2_rate\n"
+        "20/02/2026 00:00,100\n"
+        "20/02/2026 01:00,200\n",
+        encoding="utf-8-sig",
+    )
+
+    samples = load_marginal_emissions(csv_path)
+    assert samples == [
+        (datetime(2026, 2, 20, 0, 0), 100.0),
+        (datetime(2026, 2, 20, 1, 0), 200.0),
+    ]
+
+
 def test_interpolate_hourly_fills_missing_hours():
     samples = [
         (datetime(2026, 2, 20, 0, 0), 100.0),

@@ -52,7 +52,7 @@ def convert_lb_per_mwh_to_g_per_kwh(rate: float) -> float:
 
 def load_marginal_emissions(path: str | Path = DEFAULT_SOURCE_PATH) -> list[tuple[datetime, float]]:
     samples: list[tuple[datetime, float]] = []
-    with Path(path).open(newline="", encoding="utf-8") as handle:
+    with Path(path).open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
         for row in reader:
             try:
