@@ -1,10 +1,12 @@
-"""Tests for the Layer 2 emissions estimator."""
+"""Tests for the modeling-layer emissions estimator."""
 
 from datetime import datetime
 
 import pytest
 
-from emissions import (
+from inputs.carbonsignal import CarbonSignalPoint
+from inputs.generate_workload import Job
+from modeling.emissions import (
     DEFAULT_POWER_MODEL,
     annotate_jobs_with_carbon_scores,
     average_carbon_intensity,
@@ -13,8 +15,6 @@ from emissions import (
     estimate_power_watts,
     score_job,
 )
-from generate_workload import Job
-from inputs.carbonsignal import CarbonSignalPoint
 
 
 def test_estimate_power_and_energy():
@@ -58,6 +58,9 @@ def test_annotate_jobs_with_carbon_scores():
         Job(1, 0, 4, 1, "rigid"),
         Job(2, 1, 8, 2, "semi-flexible", requested_gpus=1, workload_class="training"),
     ]
-    scored_jobs = annotate_jobs_with_carbon_scores(jobs, carbon_signal=[100.0, 200.0, 300.0, 400.0])
+    scored_jobs = annotate_jobs_with_carbon_scores(
+        jobs,
+        carbon_signal=[100.0, 200.0, 300.0, 400.0],
+    )
     assert all(job.carbon_score is not None for job in scored_jobs)
     assert jobs[0].carbon_score is None

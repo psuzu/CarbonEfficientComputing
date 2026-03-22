@@ -1,10 +1,10 @@
-"""Tests for workload generation and the root job model."""
+"""Tests for workload generation and the input-layer job model."""
 
 from dataclasses import replace
 
 import pytest
 
-from generate_workload import (
+from inputs.generate_workload import (
     CSV_COLUMNS,
     DEFAULT_JOBS_PATH,
     FLEXIBILITY_CLASSES,
@@ -119,7 +119,6 @@ class TestCsvRoundTrip:
     def test_csv_has_correct_header(self, tmp_path):
         csv_file = tmp_path / "test_jobs.csv"
         write_jobs_csv([Job(1, 0, 2, 1, "rigid")], csv_file)
-
         with csv_file.open() as handle:
             header = handle.readline().strip()
         assert header == ",".join(CSV_COLUMNS)

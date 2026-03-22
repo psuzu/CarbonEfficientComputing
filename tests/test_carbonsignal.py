@@ -42,7 +42,6 @@ def test_interpolate_hourly_fills_missing_hours():
         (datetime(2026, 2, 20, 3, 0), 160.0),
         (datetime(2026, 2, 20, 4, 0), 200.0),
     ]
-
     hourly = interpolate_hourly(samples)
     assert hourly == [
         (datetime(2026, 2, 20, 0, 0), 100.0),
@@ -59,7 +58,6 @@ def test_build_carbon_signal_creates_hour_indexed_points():
         (datetime(2026, 2, 20, 1, 0), 200.0),
         (datetime(2026, 2, 20, 2, 0), 300.0),
     ]
-
     points = build_carbon_signal(samples, horizon_hours=3)
     assert [point.hour_index for point in points] == [0, 1, 2]
     assert signal_values(points) == pytest.approx([45.3592, 90.7184, 136.0776])
