@@ -9,6 +9,7 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+.env
 
 # Pytest
 .pytest_cache/
@@ -24,9 +25,4 @@ outputs/plots/
 
 # Generated data
 jobs_input.csv
-<<<<<<< HEAD
 data/jobs_input.csv
-=======
-
-.env
->>>>>>> frontend

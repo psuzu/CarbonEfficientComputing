@@ -100,9 +100,13 @@ def analyze_job_archive(
                 "intensity_label": str(manifest["workload_class"]),
                 "recommended_cpus": int(manifest["requested_cpus"]),
                 "estimated_runtime_hours": int(manifest["runtime_hours"]),
+                "submit_hour": int(manifest["submit_hour"]),
+                "flexibility_class": str(manifest["flexibility_class"]),
             }
         else:
             result = _heuristic_analysis(_read_python_sources(archive))
+            result["submit_hour"] = None
+            result["flexibility_class"] = None
 
     if requested_cpus is not None and requested_cpus < result["recommended_cpus"]:
         warnings.append(

@@ -1,15 +1,13 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { ArrowLeft, Clock, Leaf, Zap } from "lucide-react";
+import { ArrowLeft, Clock, Leaf, Sparkles, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Leaf, Clock, Zap, Sparkles } from "lucide-react";
 
 type ScoreResult = {
   scheduled_start: number;
@@ -49,9 +47,10 @@ function ReportContent() {
   }, [cpus, runtime, flex, submitHour, submitMinute, fileBytes]);
 
   // Save to DB once result arrives
-  const [wasSaved, setWasSaved] = useState(false);
+  const wasSavedRef = useRef(false);
   useEffect(() => {
-    if (!result || wasSaved) return;
+    if (!result || wasSavedRef.current) return;
+    wasSavedRef.current = true;
     fetch("/api/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -86,8 +85,7 @@ function ReportContent() {
       .then((r) => r.json())
       .then((d) => { if (d.explanation) setAiExplanation(d.explanation); });
 
-    setWasSaved(true);
-  }, [result]);
+  }, [cpus, flex, result, runtime, submitHour]);
 
   if (!result && !error) {
     return <div className="p-10 text-center text-muted-foreground">Calculating optimal schedule...</div>;
@@ -100,6 +98,7 @@ function ReportContent() {
   const saved = baselineCo2 - optimizedCo2;
   const reduction = Math.round((saved / baselineCo2) * 100);
   const delay = result ? result.delay_hours : (flex === "rigid" ? 0 : flex === "semi-flexible" ? 3 : 8);
+  const scheduledStart = result ? result.scheduled_start : submitHour + delay;
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
@@ -119,23 +118,14 @@ function ReportContent() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground text-center">
-            Detected workload: <strong>{workloadClass}</strong> ({intensityLabel})
-          </p>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <p className="text-sm text-muted-foreground">Recommended CPUs</p>
+              <p className="text-sm text-muted-foreground">Requested CPUs</p>
               <p className="text-2xl font-bold">{cpus}</p>
-              {submittedCpus !== cpus ? (
-                <p className="text-xs text-amber-700">You entered {submittedCpus}</p>
-              ) : null}
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Estimated Runtime</p>
+              <p className="text-sm text-muted-foreground">Runtime</p>
               <p className="text-2xl font-bold">{runtime}h</p>
-              {submittedRuntime !== runtime ? (
-                <p className="text-xs text-amber-700">You entered {submittedRuntime}h</p>
-              ) : null}
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Flexibility</p>
@@ -148,15 +138,6 @@ function ReportContent() {
               </Badge>
             </div>
           </div>
-          {warnings.length > 0 ? (
-            <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm space-y-1">
-              {warnings.map((warning) => (
-                <p key={warning} className="text-amber-800">
-                  {warning}
-                </p>
-              ))}
-            </div>
-          ) : null}
         </CardContent>
       </Card>
 
