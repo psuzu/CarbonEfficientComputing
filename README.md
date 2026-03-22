@@ -31,6 +31,14 @@ data/
 
 ## Python
 
+Core architecture:
+
+- The scheduler uses the repo's formula-based estimator as the primary signal:
+  `CO2 = runtime × CPUs × power × carbon_intensity`
+- This estimator is the reproducible, scalable path used by the frontend and scheduling logic.
+- Real workload execution is available for demos.
+- CodeCarbon is optional and should be treated as a demo add-on, not the core system.
+
 Run the backend tests from the repository root:
 
 ```powershell
@@ -58,6 +66,18 @@ Generate the 48-hour carbon signal:
 python -m inputs.carbonsignal
 ```
 
+Run one real demo workload tied to the sample `Job` input:
+
+```powershell
+python run_demo_job.py
+```
+
+Optionally measure the same job with CodeCarbon:
+
+```powershell
+python run_demo_job.py --measure
+```
+
 `tests/conftest.py` adds the repo root to `sys.path` so package imports resolve consistently when `pytest` is run from the repository root.
 
 ## Frontend
@@ -75,7 +95,10 @@ Then open `http://localhost:3000`.
 
 - Layer 1 input models are implemented and covered by tests.
 - Layer 2 modeling helpers are implemented and covered by tests.
-- The frontend is a mock-data prototype, not yet wired to the Python modules.
+- The formula-based estimator is the primary architecture for scheduling and emissions comparison.
+- Real demo workload execution helpers are available through `modeling.execution`.
+- Optional CodeCarbon measurement is available through `python run_demo_job.py --measure` as a demo add-on only.
+- The frontend submit flow now calls `estimator.py` through a Next.js API route to generate real emissions estimates from `data/carbon_signal_48h.csv`.
 
 ## Next Step
 

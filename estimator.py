@@ -14,15 +14,28 @@ The result is returned in grams of CO2 equivalent (gCO2e).
 
 from __future__ import annotations
 
+import json
+import sys
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Protocol, Sequence, runtime_checkable
 
 POWER_PER_CPU_KW: float = 0.15
+
+PROJECT_ROOT = Path(__file__).resolve().parent
+DEFAULT_CARBON_SIGNAL_PATH = PROJECT_ROOT / "data" / "carbon_signal_48h.csv"
 
 
 @runtime_checkable
 class JobLike(Protocol):
     """Minimal job contract required by the estimator."""
 
+    requested_cpus: int
+    runtime_hours: int
+
+
+@dataclass(frozen=True)
+class EstimateJob:
     requested_cpus: int
     runtime_hours: int
 
@@ -88,4 +101,100 @@ def calculate_job_emissions(
     )
 
 
-__all__ = ["POWER_PER_CPU_KW", "calculate_job_emissions"]
+def load_grid_forecast(path: str | Path = DEFAULT_CARBON_SIGNAL_PATH) -> list[float]:
+    """Load the carbon forecast values from the project CSV."""
+    signal_path = Path(path)
+    with signal_path.open(encoding="utf-8", newline="") as handle:
+        header = handle.readline().strip().split(",")
+        try:
+            value_index = header.index("carbon_signal_gco2_per_kwh")
+        except ValueError as exc:
+            raise ValueError(
+                "carbon signal CSV must include a carbon_signal_gco2_per_kwh column"
+            ) from exc
+
+        values: list[float] = []
+        for line_number, line in enumerate(handle, start=2):
+            columns = line.strip().split(",")
+            if len(columns) <= value_index:
+                raise ValueError(f"Missing carbon signal value on line {line_number}")
+            values.append(float(columns[value_index]))
+
+    if not values:
+        raise ValueError(f"No carbon signal rows found in {signal_path}")
+    return values
+
+
+def _allowed_delay_hours(flexibility_class: str) -> int:
+    delay_map = {
+        "rigid": 0,
+        "semi-flexible": 6,
+        "flexible": 24,
+    }
+    try:
+        return delay_map[flexibility_class]
+    except KeyError as exc:
+        raise ValueError(
+            "flexibility_class must be one of rigid, semi-flexible, or flexible"
+        ) from exc
+
+
+def estimate_submission(payload: dict[str, object]) -> dict[str, float | int | str]:
+    """Estimate baseline and optimized carbon cost for a submitted job."""
+    requested_cpus = int(payload["cpus"])
+    runtime_hours = int(payload["runtime_hours"])
+    submit_hour = int(payload["submit_hour"])
+    flexibility_class = str(payload["flexibility_class"])
+
+    forecast_values = load_grid_forecast()
+    job = EstimateJob(requested_cpus=requested_cpus, runtime_hours=runtime_hours)
+    baseline_emissions = calculate_job_emissions(job, submit_hour, forecast_values)
+
+    latest_start_hour = min(
+        submit_hour + _allowed_delay_hours(flexibility_class),
+        len(forecast_values) - runtime_hours,
+    )
+    if latest_start_hour < submit_hour:
+        raise ValueError(
+            "runtime_hours exceeds the available forecast horizon for this submission"
+        )
+
+    best_start_hour = submit_hour
+    best_emissions = baseline_emissions
+    for candidate_start in range(submit_hour, latest_start_hour + 1):
+        candidate_emissions = calculate_job_emissions(job, candidate_start, forecast_values)
+        if candidate_emissions < best_emissions:
+            best_start_hour = candidate_start
+            best_emissions = candidate_emissions
+
+    return {
+        "requested_cpus": requested_cpus,
+        "runtime_hours": runtime_hours,
+        "submit_hour": submit_hour,
+        "flexibility_class": flexibility_class,
+        "baseline_emissions_gco2e": round(baseline_emissions, 2),
+        "optimized_emissions_gco2e": round(best_emissions, 2),
+        "scheduled_start_hour": best_start_hour,
+        "delay_hours": best_start_hour - submit_hour,
+        "carbon_saved_gco2e": round(baseline_emissions - best_emissions, 2),
+    }
+
+
+def main() -> None:
+    payload = json.load(sys.stdin)
+    result = estimate_submission(payload)
+    json.dump(result, sys.stdout)
+    sys.stdout.write("\n")
+
+
+if __name__ == "__main__":
+    main()
+
+
+__all__ = [
+    "DEFAULT_CARBON_SIGNAL_PATH",
+    "POWER_PER_CPU_KW",
+    "calculate_job_emissions",
+    "estimate_submission",
+    "load_grid_forecast",
+]

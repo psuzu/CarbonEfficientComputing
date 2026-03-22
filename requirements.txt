@@ -1,1 +1,13 @@
-pytest>=7.0
+# Python runtime: 3.11+
+#
+# Core project dependencies.
+# The scheduler and emissions estimator do not require CodeCarbon.
+
+pytest>=7.4,<9
+
+# Frontend setup is separate:
+#   cd frontend
+#   npm install
+#
+# Optional demo add-on:
+#   python -m pip install codecarbon

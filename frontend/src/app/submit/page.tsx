@@ -9,6 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { carbonForecast } from "@/lib/mock-data";
 
+type AnalysisResult = {
+  analysis_source: string;
+  intensity_label: string;
+  workload_class: string;
+  recommended_cpus: number;
+  estimated_runtime_hours: number;
+  warnings: string[];
+};
+
 export default function SubmitJobPage() {
   const router = useRouter();
   const [form, setForm] = useState({
@@ -17,17 +26,112 @@ export default function SubmitJobPage() {
     flexibility: "semi-flexible",
   });
   const [fileName, setFileName] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const currentWarnings = analysis
+    ? [
+        ...(form.cpus < analysis.recommended_cpus
+          ? [
+              `Requested CPUs (${form.cpus}) may be too low for this job. Recommended minimum is ${analysis.recommended_cpus}.`,
+            ]
+          : []),
+        ...(form.runtime < analysis.estimated_runtime_hours
+          ? [
+              `Requested runtime (${form.runtime}h) may be too short. Estimated minimum runtime is ${analysis.estimated_runtime_hours}h.`,
+            ]
+          : []),
+      ]
+    : [];
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setFileName(file.name);
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      return;
+    }
+
+    setFile(selectedFile);
+    setFileName(selectedFile.name);
+    setAnalyzing(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("archive", selectedFile);
+      formData.append("cpus", String(form.cpus));
+      formData.append("runtimeHours", String(form.runtime));
+
+      const response = await fetch("/api/analyze-job", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as AnalysisResult & { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Job analysis failed");
+      }
+
+      setAnalysis(payload);
+      setForm((current) => ({
+        ...current,
+        cpus: Math.max(current.cpus, payload.recommended_cpus),
+        runtime: Math.max(current.runtime, payload.estimated_runtime_hours),
+      }));
+    } catch (analysisError) {
+      setAnalysis(null);
+      setError(analysisError instanceof Error ? analysisError.message : "Job analysis failed");
+    } finally {
+      setAnalyzing(false);
     }
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    router.push(`/report?cpus=${form.cpus}&runtime=${form.runtime}&flex=${form.flexibility}`);
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      if (file === null) {
+        throw new Error("Upload a .zip job archive first");
+      }
+
+      const formData = new FormData();
+      formData.append("archive", file);
+      formData.append("cpus", String(form.cpus));
+      formData.append("runtimeHours", String(form.runtime));
+      formData.append("flexibilityClass", form.flexibility);
+
+      const response = await fetch("/api/estimate", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = (await response.json()) as Record<string, string | number | string[]>;
+      if (!response.ok) {
+        throw new Error(String(payload.error ?? "Job estimation failed"));
+      }
+
+      const params = new URLSearchParams({
+        cpus: String(payload.recommendedCpus ?? form.cpus),
+        runtime: String(payload.estimatedRuntimeHours ?? form.runtime),
+        flex: String(form.flexibility),
+        baseline: String(payload.baseline_emissions_gco2e),
+        optimized: String(payload.optimized_emissions_gco2e),
+        saved: String(payload.carbon_saved_gco2e),
+        scheduledStart: String(payload.scheduled_start_hour),
+        delay: String(payload.delay_hours),
+        submittedCpus: String(payload.submittedCpus ?? form.cpus),
+        submittedRuntime: String(payload.submittedRuntimeHours ?? form.runtime),
+        workloadClass: String(payload.workloadClass ?? ""),
+        intensityLabel: String(payload.intensityLabel ?? ""),
+        warnings: Array.isArray(payload.warnings) ? payload.warnings.join(" | ") : "",
+      });
+      router.push(`/report?${params.toString()}`);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Job estimation failed");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -87,10 +191,35 @@ export default function SubmitJobPage() {
                   </span>
                   <input type="file" accept=".zip" onChange={handleFileChange} className="hidden" />
                 </label>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Sample uploads: <code>data/sample_jobs/cpu_burn_job.zip</code>,{" "}
+                  <code>data/sample_jobs/matrix_multiply_job.zip</code>,{" "}
+                  <code>data/sample_jobs/parallel_batch_job.zip</code>
+                </p>
               </div>
 
-              <Button type="submit" className="w-full" size="lg">
-                <Leaf className="size-4 mr-2" /> Submit Job
+              {analysis ? (
+                <div className="rounded-md border border-primary/20 bg-primary/5 p-3 text-sm space-y-1">
+                  <p>
+                    Estimated workload: <strong>{analysis.workload_class}</strong> ({analysis.intensity_label})
+                  </p>
+                  <p>
+                    Recommended minimum: <strong>{analysis.recommended_cpus} CPUs</strong> for{" "}
+                    <strong>{analysis.estimated_runtime_hours} hour(s)</strong>
+                  </p>
+                  {currentWarnings.map((warning) => (
+                    <p key={warning} className="text-amber-700">
+                      {warning}
+                    </p>
+                  ))}
+                </div>
+              ) : null}
+
+              {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+              <Button type="submit" className="w-full" size="lg" disabled={submitting || analyzing}>
+                <Leaf className="size-4 mr-2" />
+                {analyzing ? "Analyzing..." : submitting ? "Estimating..." : "Submit Job"}
               </Button>
             </form>
           </CardContent>

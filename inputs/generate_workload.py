@@ -27,6 +27,7 @@ CSV_COLUMNS = [
     "runtime_hours",
     "flexibility_class",
     "workload_class",
+    "source_archive",
     "carbon_score",
 ]
 
@@ -42,6 +43,7 @@ class Job:
     flexibility_class: str
     requested_gpus: int = 0
     workload_class: str = "generic"
+    source_archive: str | None = None
     carbon_score: float | None = None
 
     def __post_init__(self) -> None:
@@ -62,6 +64,11 @@ class Job:
             )
         if not isinstance(self.workload_class, str) or not self.workload_class.strip():
             raise ValueError("workload_class must be a non-empty string")
+        if self.source_archive is not None:
+            if not isinstance(self.source_archive, str) or not self.source_archive.strip():
+                raise ValueError("source_archive must be a non-empty string or None")
+            if not self.source_archive.endswith(".zip"):
+                raise ValueError("source_archive must point to a .zip file")
         if self.carbon_score is not None and not isinstance(self.carbon_score, (int, float)):
             raise TypeError(
                 "carbon_score must be a float, int, or None, "
@@ -88,6 +95,7 @@ class Job:
             "runtime_hours": self.runtime_hours,
             "flexibility_class": self.flexibility_class,
             "workload_class": self.workload_class,
+            "source_archive": self.source_archive,
             "carbon_score": self.carbon_score,
         }
 
@@ -102,6 +110,11 @@ class Job:
 
             requested_gpus = row.get("requested_gpus", 0)
             workload_class = row.get("workload_class", "generic")
+            source_archive = row.get("source_archive")
+            if source_archive is None or str(source_archive).strip() == "":
+                normalized_archive = None
+            else:
+                normalized_archive = str(source_archive).strip()
 
             return cls(
                 job_id=int(row["job_id"]),
@@ -111,6 +124,7 @@ class Job:
                 runtime_hours=int(row["runtime_hours"]),
                 flexibility_class=str(row["flexibility_class"]).strip(),
                 workload_class=str(workload_class).strip() or "generic",
+                source_archive=normalized_archive,
                 carbon_score=carbon_score,
             )
         except KeyError as exc:
